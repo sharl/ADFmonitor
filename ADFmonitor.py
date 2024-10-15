@@ -39,12 +39,34 @@ class taskTray:
         self.page_cache = {}
 
         image = Image.open(io.BytesIO(binascii.unhexlify(ICON.replace('\n', '').strip())))
-        menu = Menu(
-            MenuItem('Exit', self.stopApp),
-        )
-        self.app = Icon(name='PYTHON.win32.AstoltiaDefenseForce', title=TITLE, icon=image, menu=menu)
         self.updatePage()
+        menu = self.updateMenu()
+        self.app = Icon(name='PYTHON.win32.AstoltiaDefenseForce', title=TITLE, image=image, menu=menu)
         self.doCheck()
+
+    def getNow(self):
+        return dt.now(tz(td(hours=+9), 'JST')).strftime('%H:00')
+
+    def getTarget(self, image_url):
+        return image_url.split('/')[-1].split('.')[0]
+
+    def updateMenu(self):
+        now = self.getNow()
+        item = list()
+
+        matched = False
+        for t in self.page_cache:
+            # 現在以前はスキップ
+            if t == now:
+                matched = True
+            if not matched:
+                continue
+
+            target = self.getTarget(self.page_cache[t])
+            item.append(MenuItem(f'{t} {titles[target]}', lambda _: False, checked=lambda x: str(x).split()[0] == now))
+        item.append(Menu.SEPARATOR)
+        item.append(MenuItem('Exit', self.stopApp))
+        return Menu(*item)
 
     def updatePage(self):
         """
@@ -73,7 +95,7 @@ class taskTray:
         """
         毎正時に更新
         """
-        now = dt.now(tz(td(hours=+9), 'JST')).strftime('%H:00')
+        now = self.getNow()
         icon_url = self.page_cache[now]
         if icon_url != self.icon_url:
             self.icon_url = icon_url
@@ -83,11 +105,12 @@ class taskTray:
                 # crop center
                 icon = image.crop(((w - h) // 2, 0, (w + h) // 2, h)).resize((16, 16))
 
-                target = icon_url.split('/')[-1].split('.')[0]
+                target = self.getTarget(icon_url)
                 self.app.title = titles[target]
+                self.app.menu = self.updateMenu()
                 self.app.icon = icon
                 self.app.update_menu()
-                print(now, 'icon updated')
+                print(now, titles[target], 'icon updated')
 
                 if target == '19':
                     toast(TITLE, titles[target])
