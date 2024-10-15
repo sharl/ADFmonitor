@@ -42,6 +42,7 @@ class taskTray:
         )
         self.app = Icon(name='PYTHON.win32.AstoltiaDefenseForce', title='Astoltia Defense Force', icon=image, menu=menu)
         self.updatePage()
+        self.doCheck()
 
     def updatePage(self):
         """
@@ -67,6 +68,9 @@ class taskTray:
         print(base_url, 'updated')
 
     def doCheck(self):
+        """
+        毎正時に更新
+        """
         now = dt.now(tz(td(hours=+9), 'JST')).strftime('%H:00')
         icon_url = self.page_cache[now]
         if icon_url != self.icon_url:
@@ -84,7 +88,7 @@ class taskTray:
 
     def runSchedule(self):
         schedule.every().day.at('06:00').do(self.updatePage)
-        schedule.every(1).seconds.do(self.doCheck)
+        schedule.every().hour.at(':00').do(self.doCheck)
 
         while self.running:
             schedule.run_pending()
