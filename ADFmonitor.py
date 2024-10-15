@@ -10,7 +10,9 @@ from pystray import Icon, Menu, MenuItem
 from PIL import Image
 import requests
 from bs4 import BeautifulSoup
+from win11toast import toast
 
+TITLE = 'Astoltia Defense Force'
 base_url = 'https://hiroba.dqx.jp/sc/tokoyami/'
 # 新兵団がきたら手動更新
 titles = {
@@ -40,7 +42,7 @@ class taskTray:
         menu = Menu(
             MenuItem('Exit', self.stopApp),
         )
-        self.app = Icon(name='PYTHON.win32.AstoltiaDefenseForce', title='Astoltia Defense Force', icon=image, menu=menu)
+        self.app = Icon(name='PYTHON.win32.AstoltiaDefenseForce', title=TITLE, icon=image, menu=menu)
         self.updatePage()
         self.doCheck()
 
@@ -81,10 +83,14 @@ class taskTray:
                 # crop center
                 icon = image.crop(((w - h) // 2, 0, (w + h) // 2, h)).resize((16, 16))
 
-                self.app.title = titles[icon_url.split('/')[-1].split('.')[0]]
+                target = icon_url.split('/')[-1].split('.')[0]
+                self.app.title = titles[target]
                 self.app.icon = icon
                 self.app.update_menu()
                 print(now, 'icon updated')
+
+                if target == '19':
+                    toast(TITLE, titles[target])
 
     def runSchedule(self):
         schedule.every().day.at('06:00').do(self.updatePage)
