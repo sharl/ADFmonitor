@@ -3,6 +3,7 @@ import io
 import time
 import threading
 from datetime import datetime as dt, timedelta as td, timezone as tz
+import webbrowser
 
 import schedule
 from pystray import Icon, Menu, MenuItem
@@ -12,7 +13,7 @@ from bs4 import BeautifulSoup
 from win11toast import toast
 
 TITLE = 'Astoltia Defense Force'
-base_url = 'https://hiroba.dqx.jp/sc/tokoyami/'
+base_url = 'https://hiroba.dqx.jp/sc/tokoyami/#raid'
 # 新兵団がきたら手動更新
 titles = {
     "2": "闇朱の獣牙兵団",
@@ -27,6 +28,7 @@ titles = {
     "13": "白雲の冥翼兵団",
     "14": "腐緑の樹葬兵団",
     "15": "青鮮の菜果兵団",
+    "16": "鋼塊の重滅兵団",     # 仮
     "19": "全兵団",
 }
 
@@ -48,9 +50,14 @@ class taskTray:
     def getTarget(self, image_url):
         return image_url.split('/')[-1].split('.')[0]
 
+    def doOpen(self):
+        webbrowser.open(base_url)
+
     def updateMenu(self):
         now = self.getNow()
-        item = list()
+        item = [
+            MenuItem('Open', self.doOpen, default=True, visible=False),
+        ]
 
         matched = False
         for t in self.page_cache:
