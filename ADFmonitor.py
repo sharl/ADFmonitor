@@ -10,7 +10,7 @@ from pystray import Icon, Menu, MenuItem
 from PIL import Image
 import requests
 from bs4 import BeautifulSoup
-from win11toast import toast
+from win11toast import notify
 
 TITLE = 'Astoltia Defense Force'
 base_url = 'https://hiroba.dqx.jp/sc/tokoyami/#raid'
@@ -118,7 +118,7 @@ class taskTray:
                 print(now, titles[target], 'icon updated')
 
                 if target == '19':
-                    toast(TITLE, titles[target])
+                    notify(TITLE, titles[target])
 
     def runSchedule(self):
         schedule.every().day.at('06:00').do(self.updatePage)
