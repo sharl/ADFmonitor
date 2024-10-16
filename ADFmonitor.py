@@ -100,6 +100,8 @@ class taskTray:
         """
         毎正時に更新
         """
+        time.sleep(1)
+
         now = self.getNow()
         icon_url = self.page_cache[now]
         if icon_url != self.icon_url:
