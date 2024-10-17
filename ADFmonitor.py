@@ -15,7 +15,7 @@ from bs4 import BeautifulSoup
 from win11toast import notify
 
 TITLE = 'Astoltia Defense Force'
-base_url = 'https://hiroba.dqx.jp/sc/tokoyami/#raid'
+base_url = 'https://hiroba.dqx.jp/sc/tokoyami/#raid-container'
 # 新兵団がきたら手動更新
 titles = {
     "2": "闇朱の獣牙兵団",
