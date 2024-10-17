@@ -15,3 +15,7 @@ python ADFmonitor.py
 Drawn by Microsoft Copilot
 
 アイコン募集中です
+
+## sound
+【効果音】風鈴の音１＿チリン - ニコニ・コモンズ
+https://commons.nicovideo.jp/works/nc308516

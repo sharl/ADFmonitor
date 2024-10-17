@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import os
+import sys
 import io
 import time
 import threading
@@ -120,7 +122,12 @@ class taskTray:
                 print(now, titles[target], 'icon updated')
 
                 if target == '19':
-                    notify(TITLE, titles[target])
+                    def resource_path(path):
+                        if hasattr(sys, '_MEIPASS'):
+                            return os.path.join(sys._MEIPASS, path)
+                        return os.path.join(os.path.abspath('.'), path)
+
+                    notify(titles[target], app_id=TITLE, audio=resource_path('Assets/nc308516.mp3'))
 
     def runSchedule(self):
         schedule.every().day.at('06:00').do(self.updatePage)
