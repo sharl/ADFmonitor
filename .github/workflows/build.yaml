@@ -24,17 +24,16 @@ jobs:
       - name: set version
         run: |
           Write-Output ("VERSION=" + ("${{ github.ref_name }}" -replace 'v', '')) >> "$env:GITHUB_ENV"
-          Write-Output ("REPO=" + ("$env:GITHUB_REPOSITORY" -replace "$env:GITHUB_REPOSITORY_OWNER/", '')) >> "$env:GITHUB_ENV"
 
       - name: Create executable file with pyinstaller and zip
         run: |
           pyinstaller ADFmonitor.py --onefile --noconsole
           pushd dist
-          Compress-Archive -Path . -DestinationPath ${{ env.REPO }}-${{ env.VERSION }}.zip
+          Compress-Archive -Path . -DestinationPath ${{ github.event.repository.name }}-${{ env.VERSION }}.zip
           popd
 
       - name: Upload a executable file to GitHub Releases
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist/${{ env.REPO }}-${{ env.VERSION }}.zip
+            dist/${{ github.event.repository.name }}-${{ env.VERSION }}.zip
