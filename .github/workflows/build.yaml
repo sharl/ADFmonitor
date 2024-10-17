@@ -24,7 +24,7 @@ jobs:
       - name: set version
         run: |
           Write-Output ("VERSION=" + ("${{ github.ref_name }}" -replace 'v', '')) >> "$env:GITHUB_ENV"
-          Write-Output ("REPO=" + ($env:GITHUB_REPOSITORY -replace "$env:GITHUB_REPOSITORY_OWNER/", '')) >> "$env:GITHUB_ENV"
+          Write-Output ("REPO=" + ("$env:GITHUB_REPOSITORY" -replace "$env:GITHUB_REPOSITORY_OWNER/", '')) >> "$env:GITHUB_ENV"
 
       - name: Create executable file with pyinstaller and zip
         run: |
