@@ -10,3 +10,8 @@ cd ADFmonitor
 pip install -r requirements.txt
 python ADFmonitor.py
 ```
+
+## icon
+Drawn by Microsoft Copilot
+
+アイコン募集中です
