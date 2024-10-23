@@ -30,7 +30,7 @@ titles = {
     "13": "白雲の冥翼兵団",
     "14": "腐緑の樹葬兵団",
     "15": "青鮮の菜果兵団",
-    "16": "鋼塊の重滅兵団",     # 仮
+    "16": "鋼塊の重滅兵団",
     "19": "全兵団",
 }
 
@@ -42,6 +42,10 @@ class taskTray:
         self.page_cache = {}
 
         self.updatePage()
+        if not self.page_cache:
+            notify(body='メンテナンス中', app_id=TITLE, duration='long')
+            exit()
+
         menu = self.updateMenu()
         self.app = Icon(name='PYTHON.win32.AstoltiaDefenseForce', title=TITLE, menu=menu)
         self.doCheck()
@@ -81,22 +85,23 @@ class taskTray:
         """
         with requests.get(base_url, timeout=10) as r:
             soup = BeautifulSoup(r.content, 'html.parser')
-            # 同じクラスでメタルーキーもあるので先頭だけ
-            tables = soup.find_all('table', class_='tokoyami-raid')[0]
-            trs = tables.find_all('tr')
+            tables = soup.find_all('table', class_='tokoyami-raid')
+            if tables:
+                # 同じクラスでメタルーキーもあるので先頭だけ
+                trs = tables[0].find_all('tr')
 
-            for tr in trs:
-                tds = tr.find_all('td')
-                # th のときは td がないのでスキップ
-                if len(tds) == 0:
-                    continue
+                for tr in trs:
+                    tds = tr.find_all('td')
+                    # th のときは td がないのでスキップ
+                    if len(tds) == 0:
+                        continue
 
-                hh, _ = tds[0].contents[0].strip().split('\xa0')[0].split(':')
-                _time = f'{int(hh):02}:00'
-                icon_url = tds[1].contents[1].get('src')
-                self.page_cache[_time] = icon_url
+                    hh, _ = tds[0].contents[0].strip().split('\xa0')[0].split(':')
+                    _time = f'{int(hh):02}:00'
+                    icon_url = tds[1].contents[1].get('src')
+                    self.page_cache[_time] = icon_url
 
-        print(base_url, 'updated')
+            print(base_url, 'updated')
 
     def doCheck(self):
         """
@@ -105,7 +110,13 @@ class taskTray:
         time.sleep(1)
 
         now = self.getNow()
-        icon_url = self.page_cache[now]
+        icon_url = self.page_cache.get(now)
+        if icon_url is None:
+            self.updatePage()
+            if not self.page_cache:
+                return
+            icon_url = self.page_cache.get(now)
+
         if icon_url != self.icon_url:
             self.icon_url = icon_url
             with requests.get(icon_url) as r:
