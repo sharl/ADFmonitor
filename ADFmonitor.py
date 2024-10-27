@@ -57,6 +57,8 @@ class taskTray:
         return image_url.split('/')[-1].split('.')[0]
 
     def doOpen(self):
+        self.updatePage()
+        self.doCheck()
         webbrowser.open(base_url)
 
     def updateMenu(self):
