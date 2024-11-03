@@ -48,7 +48,7 @@ class taskTray:
 
         menu = self.updateMenu()
         self.app = Icon(name='PYTHON.win32.AstoltiaDefenseForce', title=TITLE, menu=menu)
-        self.doCheck()
+        self.doCheck(wait=False)
 
     def getNow(self):
         return dt.now(tz(td(hours=+9), 'JST')).strftime('%H:00')
@@ -58,7 +58,7 @@ class taskTray:
 
     def doOpen(self):
         self.updatePage()
-        self.doCheck()
+        self.doCheck(wait=False)
         webbrowser.open(base_url)
 
     def updateMenu(self):
@@ -105,11 +105,12 @@ class taskTray:
 
             print(base_url, 'updated')
 
-    def doCheck(self):
+    def doCheck(self, wait=True):
         """
         毎正時に更新
         """
-        time.sleep(1)
+        if wait:
+            time.sleep(1)
 
         now = self.getNow()
         icon_url = self.page_cache.get(now)
