@@ -44,7 +44,7 @@ class taskTray:
         self.updatePage()
         if not self.page_cache:
             notify(body='メンテナンス中', app_id=TITLE, duration='long')
-            exit()
+            sys.exit(1)
 
         menu = self.updateMenu()
         self.app = Icon(name='PYTHON.win32.AstoltiaDefenseForce', title=TITLE, menu=menu)
