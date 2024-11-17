@@ -1,5 +1,6 @@
 schedule
 pystray
+tenacity
 requests
 bs4
 win11toast
