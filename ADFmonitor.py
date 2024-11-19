@@ -13,6 +13,7 @@ from PIL import Image
 import requests
 from bs4 import BeautifulSoup
 from win11toast import notify
+from tenacity import retry, stop_after_attempt
 
 TITLE = 'Astoltia Defense Force'
 base_url = 'https://hiroba.dqx.jp/sc/tokoyami/#raid-container'
@@ -50,6 +51,12 @@ class taskTray:
         self.app = Icon(name='PYTHON.win32.AstoltiaDefenseForce', title=TITLE, menu=menu)
         self.doCheck(wait=False)
 
+    def getTime(self):
+        return dt.now(tz(td(hours=+9), 'JST')).strftime('%H:%M:%S')
+
+    def getDate(self):
+        return dt.now(tz(td(hours=+9), 'JST')).strftime('%m/%d')
+
     def getNow(self):
         return dt.now(tz(td(hours=+9), 'JST')).strftime('%H:00')
 
@@ -81,16 +88,24 @@ class taskTray:
         item.append(MenuItem('Exit', self.stopApp))
         return Menu(*item)
 
+    @retry(stop=stop_after_attempt(5))
     def updatePage(self):
         """
         毎日 6:00 に更新
         """
+        now = self.getDate()
+        print('>>>', self.getTime())
+
         with requests.get(base_url, timeout=10) as r:
             soup = BeautifulSoup(r.content, 'html.parser')
             tables = soup.find_all('table', class_='tokoyami-raid')
             if tables:
                 # 同じクラスでメタルーキーもあるので先頭だけ
                 trs = tables[0].find_all('tr')
+                # 日付が一致しているか
+                if not trs[0].find_all('th')[1].text.strip().startswith(now):
+                    raise Exception('date not match')
+                print('<<<')
 
                 for tr in trs:
                     tds = tr.find_all('td')
