@@ -42,7 +42,7 @@ class taskTray:
         self.icon_url = str()
         self.page_cache = {}
 
-        self.updatePage()
+        self.updatePage(retry=False)
         if not self.page_cache:
             notify(body='メンテナンス中', app_id=TITLE, duration='long')
             sys.exit(1)
@@ -64,7 +64,7 @@ class taskTray:
         return image_url.split('/')[-1].split('.')[0]
 
     def doOpen(self):
-        self.updatePage()
+        self.updatePage(retry=False)
         self.doCheck(wait=False)
         webbrowser.open(base_url)
 
@@ -89,7 +89,7 @@ class taskTray:
         return Menu(*item)
 
     @retry(stop=stop_after_attempt(5))
-    def updatePage(self):
+    def updatePage(self, retry=True):
         """
         毎日 6:00 に更新
         """
@@ -103,7 +103,7 @@ class taskTray:
                 # 同じクラスでメタルーキーもあるので先頭だけ
                 trs = tables[0].find_all('tr')
                 # 日付が一致しているか
-                if not trs[0].find_all('th')[1].text.strip().startswith(now):
+                if retry and not trs[0].find_all('th')[1].text.strip().startswith(now):
                     raise Exception('date not match')
                 print('<<<')
 
