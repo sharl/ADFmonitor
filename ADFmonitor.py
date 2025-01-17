@@ -36,11 +36,19 @@ titles = {
 }
 
 
+def resource_path(path):
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, path)
+    return os.path.join(os.path.abspath('.'), path)
+
+
 class taskTray:
     def __init__(self):
         self.running = False
         self.icon_url = str()
         self.page_cache = {}
+        self.metal_cache = []
+        self.enableMetal = True
 
         self.updatePage(retry=False)
         if not self.page_cache:
@@ -49,6 +57,7 @@ class taskTray:
 
         menu = self.updateMenu()
         self.app = Icon(name='PYTHON.win32.AstoltiaDefenseForce', title=TITLE, menu=menu)
+        self.checkMetal()
         self.doCheck(wait=False)
 
     def getTime(self):
@@ -59,6 +68,46 @@ class taskTray:
 
     def getNow(self):
         return dt.now(tz(td(hours=+9), 'JST')).strftime('%H:00')
+
+    def getNowHalf(self):
+        hh, mm = dt.now(tz(td(hours=+9), 'JST')).strftime('%H:%M').split(':')
+        if hh < '05':
+            hh = int(hh) + 24
+        return f'{hh:02}:{mm}'
+
+    def isMetal(self, t0):
+        # t0  -> 00:00, 09:00, 11:30, 23:30
+        # t1  -> 24:30, 09:30, 12:00, 24:00
+        hh, mm = t0.split(':')
+        if hh < '05':
+            hh = int(hh) + 24
+        t0 = f'{hh}:{mm}'
+        if t0.endswith('00'):
+            t1 = t0.replace(':00', ':30')
+        else:
+            # :30
+            hh = int(t0.split(':')[0]) + 1
+            t1 = f'{hh:02}:00'
+
+        hhmm = self.getNowHalf()
+        return t0 <= hhmm < t1
+
+    def isOverMetal(self, t0):
+        # t0  -> 00:00, 09:00, 11:30, 23:30, 02:30, 05:00, 05:30
+        # t1  -> 00:30, 09:30, 12:00, 24:00, 27:00, 29:30, 30:00
+        hh = int(t0.split(':')[0])
+        if t0.endswith('00'):
+            mm = 30
+        else:
+            hh += 1
+            mm = 0
+
+        if 0 <= hh < 6:
+            hh += 24
+
+        t1 = f'{hh:02}:{mm:02}'
+        hhmm = self.getNowHalf()
+        return hhmm >= t1
 
     def getTarget(self, image_url):
         return image_url.split('/')[-1].split('.')[0]
@@ -72,8 +121,21 @@ class taskTray:
         now = self.getNow()
         item = [
             MenuItem('Open', self.doOpen, default=True, visible=False),
+            MenuItem('Check Metal Rookies', self.toggleMetal, checked=lambda _: self.enableMetal),
+            Menu.SEPARATOR,
         ]
 
+        # metal rookies
+        if self.enableMetal:
+            for t in self.metal_cache:
+                # 現在以前はスキップ
+                if self.isOverMetal(t):
+                    continue
+
+                item.append(MenuItem(f'{t} メタルーキー', lambda _: False, checked=lambda x: self.isMetal(str(x).split()[0])))
+            item.append(Menu.SEPARATOR)
+
+        # defense force
         matched = False
         for t in self.page_cache:
             # 現在以前はスキップ
@@ -118,6 +180,20 @@ class taskTray:
                     icon_url = tds[1].contents[1].get('src')
                     self.page_cache[_time] = icon_url
 
+                # metal rookies
+                self.metal_cache = []
+                trs = tables[1].find_all('tr')
+                for tr in trs:
+                    tds = tr.find_all('td')
+                    # th のときは td がないのでスキップ
+                    if len(tds) == 0:
+                        continue
+
+                    if tds[1].find('img'):
+                        hh, mm = tds[0].contents[0].strip().split('\xa0')[0].split(':')
+                        _time = f'{int(hh):02}:{mm}'
+                        self.metal_cache.append(_time)
+
             print(base_url, 'updated')
 
     def doCheck(self, wait=True):
@@ -151,16 +227,28 @@ class taskTray:
                 print(now, titles[target], 'icon updated')
 
                 if target == '19':
-                    def resource_path(path):
-                        if hasattr(sys, '_MEIPASS'):
-                            return os.path.join(sys._MEIPASS, path)
-                        return os.path.join(os.path.abspath('.'), path)
+                    notify(f'{now} {titles[target]}', app_id=TITLE, audio=resource_path('Assets/nc308516.mp3'))
 
-                    notify(titles[target], app_id=TITLE, audio=resource_path('Assets/nc308516.mp3'))
+    def checkMetal(self):
+        """
+        :00, :30 にチェック
+        """
+        self.app.menu = self.updateMenu()
+        self.app.update_menu()
+        if self.enableMetal:
+            for t in self.metal_cache:
+                if self.isMetal(t):
+                    notify(f'{t} メタルーキー軍団 大行進中', app_id=TITLE, audio=resource_path('Assets/nc308516.mp3'))
+
+    def toggleMetal(self):
+        self.enableMetal = not self.enableMetal
+        self.checkMetal()
 
     def runSchedule(self):
         schedule.every().day.at('06:00').do(self.updatePage)
         schedule.every().hour.at(':00').do(self.doCheck)
+        schedule.every().hour.at(':00').do(self.checkMetal)
+        schedule.every().hour.at(':30').do(self.checkMetal)
 
         while self.running:
             schedule.run_pending()
