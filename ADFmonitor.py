@@ -42,6 +42,10 @@ def resource_path(path):
     return os.path.join(os.path.abspath('.'), path)
 
 
+def Dracky(body):
+    notify(body, app_id=TITLE, audio=resource_path('Assets/nc308516.mp3'))
+
+
 class taskTray:
     def __init__(self):
         self.running = False
@@ -221,7 +225,7 @@ class taskTray:
                 print(now, titles[target], 'icon updated')
 
                 if target == '19':
-                    notify(f'{now} {titles[target]}', app_id=TITLE, audio=resource_path('Assets/nc308516.mp3'))
+                    Dracky(f'{now} {titles[target]}')
 
     def checkMetal(self):
         """
@@ -232,7 +236,7 @@ class taskTray:
         if self.enableMetal:
             for t in self.metal_cache:
                 if self.isMetal(t):
-                    notify(f'{t} メタルーキー軍団 大行進中', app_id=TITLE, audio=resource_path('Assets/nc308516.mp3'))
+                    Dracky(f'{t} メタルーキー軍団 大行進中')
 
     def toggleMetal(self):
         self.enableMetal = not self.enableMetal
