@@ -4,6 +4,10 @@
 
 ![](Assets/image.png)
 
+メタルーキー軍団の大行進スケジュールも確認できるようになりました
+
+![](Assets/metal.png)
+
 ## Run
 
 ```
