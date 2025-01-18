@@ -60,17 +60,11 @@ class taskTray:
         self.checkMetal()
         self.doCheck(wait=False)
 
-    def getTime(self):
-        return dt.now(tz(td(hours=+9), 'JST')).strftime('%H:%M:%S')
-
-    def getDate(self):
-        return dt.now(tz(td(hours=+9), 'JST')).strftime('%m/%d')
-
-    def getNow(self):
-        return dt.now(tz(td(hours=+9), 'JST')).strftime('%H:00')
+    def getNow(self, fmt='%H:%M:%S'):
+        return dt.now(tz(td(hours=+9), 'JST')).strftime(fmt)
 
     def getNowHalf(self):
-        hh, mm = dt.now(tz(td(hours=+9), 'JST')).strftime('%H:%M').split(':')
+        hh, mm = self.getNow('%H:%M').split(':')
         if hh < '05':
             hh = int(hh) + 24
         return f'{hh:02}:{mm}'
@@ -118,7 +112,7 @@ class taskTray:
         webbrowser.open(base_url)
 
     def updateMenu(self):
-        now = self.getNow()
+        now = self.getNow('%H:00')
         item = [
             MenuItem('Open', self.doOpen, default=True, visible=False),
             MenuItem('Check Metal Rookies', self.toggleMetal, checked=lambda _: self.enableMetal),
@@ -155,8 +149,8 @@ class taskTray:
         """
         毎日 6:00 に更新
         """
-        now = self.getDate()
-        print('>>>', self.getTime())
+        now = self.getNow('%m/%d')
+        print('>>>', self.getNow())
 
         with requests.get(base_url, timeout=10) as r:
             soup = BeautifulSoup(r.content, 'html.parser')
@@ -203,7 +197,7 @@ class taskTray:
         if wait:
             time.sleep(1)
 
-        now = self.getNow()
+        now = self.getNow('%H:00')
         icon_url = self.page_cache.get(now)
         if icon_url is None:
             self.updatePage()
