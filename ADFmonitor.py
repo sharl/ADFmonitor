@@ -52,6 +52,7 @@ class taskTray:
         self.icon_url = str()
         self.page_cache = {}
         self.metal_cache = []
+        self.icon_cache = {}            # { "num": Image }
         self.enableMetal = True
 
         self.updatePage(retry=False)
@@ -59,6 +60,7 @@ class taskTray:
             notify(body='メンテナンス中', app_id=TITLE, duration='long')
             sys.exit(1)
 
+        self.makeIconCache()
         menu = self.updateMenu()
         self.app = Icon(name='PYTHON.win32.AstoltiaDefenseForce', title=TITLE, menu=menu)
         self.checkMetal()
@@ -148,6 +150,45 @@ class taskTray:
         item.append(MenuItem('Exit', self.stopApp))
         return Menu(*item)
 
+    def makeIconCache(self):
+        def _makeIcon(icon_url):
+            with requests.get(icon_url) as r:
+                image = Image.open(io.BytesIO(r.content))
+                w, h = image.size
+                # crop center
+                icon_image = image.crop(((w - h) // 2, 0, (w + h) // 2, h)).resize((16, 16))
+                return icon_image
+
+        # 防衛軍
+        for t in self.page_cache:
+            icon_url = self.page_cache[t]
+            target = self.getTarget(icon_url)
+            self.icon_cache[target] = _makeIcon(icon_url)
+
+        # メタルーキー(メタルスライム)
+        icon_url = 'https://cache.hiroba.dqx.jp/dq_resource/img/tokoyami/koushin/ico/1.png'
+        target = '1'
+        self.icon_cache[target] = _makeIcon(icon_url)
+
+    def getIcon(self, icons):
+        if self.enableMetal:
+            for t in self.metal_cache:
+                if self.isMetal(t):
+                    # 1秒毎に返すアイコンが異なる感じ
+                    second = int(self.getNow('%S'))
+                    return icons[second % 2]
+
+        return icons[0]
+
+    def updateIcon(self):
+        # use icon_cache and metal rookies
+        target = self.getTarget(self.icon_url)
+        icon_adf = self.icon_cache[target]
+        icon_metal = self.icon_cache['1']
+
+        self.app.icon = self.getIcon([icon_adf, icon_metal])
+        self.app.update_menu()
+
     @retry(stop=stop_after_attempt(5))
     def updatePage(self, retry=True):
         """
@@ -211,21 +252,20 @@ class taskTray:
 
         if icon_url != self.icon_url:
             self.icon_url = icon_url
-            with requests.get(icon_url) as r:
-                image = Image.open(io.BytesIO(r.content))
-                w, h = image.size
-                # crop center
-                icon = image.crop(((w - h) // 2, 0, (w + h) // 2, h)).resize((16, 16))
 
-                target = self.getTarget(icon_url)
-                self.app.title = titles[target]
-                self.app.menu = self.updateMenu()
-                self.app.icon = icon
-                self.app.update_menu()
-                print(now, titles[target], 'icon updated')
+            # use icon_cache and metal rookies
+            target = self.getTarget(icon_url)
+            icon_adf = self.icon_cache[target]
+            icon_metal = self.icon_cache['1']
 
-                if target == '19':
-                    Dracky(f'{now} {titles[target]}')
+            self.app.title = titles[target]
+            self.app.menu = self.updateMenu()
+            self.app.icon = self.getIcon([icon_adf, icon_metal])
+            self.app.update_menu()
+            print(now, titles[target], 'icon updated')
+
+            if target == '19':
+                Dracky(f'{now} {titles[target]}')
 
     def checkMetal(self):
         """
@@ -247,6 +287,7 @@ class taskTray:
         schedule.every().hour.at(':00').do(self.doCheck)
         schedule.every().hour.at(':00').do(self.checkMetal)
         schedule.every().hour.at(':30').do(self.checkMetal)
+        schedule.every().seconds.do(self.updateIcon)
 
         while self.running:
             schedule.run_pending()
