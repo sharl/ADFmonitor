@@ -151,7 +151,7 @@ class taskTray:
         return Menu(*item)
 
     def makeIconCache(self):
-        def _makeIcon(icon_url):
+        def _makeIconImage(icon_url):
             with requests.get(icon_url) as r:
                 image = Image.open(io.BytesIO(r.content))
                 w, h = image.size
@@ -163,12 +163,11 @@ class taskTray:
         for t in self.page_cache:
             icon_url = self.page_cache[t]
             target = self.getTarget(icon_url)
-            self.icon_cache[target] = _makeIcon(icon_url)
+            self.icon_cache[target] = _makeIconImage(icon_url)
 
         # メタルーキー(メタルスライム)
         icon_url = 'https://cache.hiroba.dqx.jp/dq_resource/img/tokoyami/koushin/ico/1.png'
-        target = '1'
-        self.icon_cache[target] = _makeIcon(icon_url)
+        self.icon_cache['1'] = _makeIconImage(icon_url)
 
     def getIcon(self, icons):
         if self.enableMetal:
@@ -180,14 +179,13 @@ class taskTray:
 
         return icons[0]
 
-    def updateIcon(self):
-        # use icon_cache and metal rookies
+    def updateIcon(self, update_menu=True):
         target = self.getTarget(self.icon_url)
         icon_adf = self.icon_cache[target]
         icon_metal = self.icon_cache['1']
-
         self.app.icon = self.getIcon([icon_adf, icon_metal])
-        self.app.update_menu()
+        if update_menu:
+            self.app.update_menu()
 
     @retry(stop=stop_after_attempt(5))
     def updatePage(self, retry=True):
@@ -253,14 +251,11 @@ class taskTray:
         if icon_url != self.icon_url:
             self.icon_url = icon_url
 
-            # use icon_cache and metal rookies
-            target = self.getTarget(icon_url)
-            icon_adf = self.icon_cache[target]
-            icon_metal = self.icon_cache['1']
-
+            # set self.app.icon
+            self.updateIcon(update_menu=False)
+            target = self.getTarget(self.icon_url)
             self.app.title = titles[target]
             self.app.menu = self.updateMenu()
-            self.app.icon = self.getIcon([icon_adf, icon_metal])
             self.app.update_menu()
             print(now, titles[target], 'icon updated')
 
