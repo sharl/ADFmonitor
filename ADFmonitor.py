@@ -71,7 +71,7 @@ class taskTray:
 
     def getNowHalf(self):
         hh, mm = self.getNow('%H:%M').split(':')
-        if hh < '05':
+        if hh < '06':
             hh = int(hh) + 24
         return f'{hh:02}:{mm}'
 
