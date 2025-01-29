@@ -60,7 +60,6 @@ class taskTray:
             notify(body='メンテナンス中', app_id=TITLE, duration='long')
             sys.exit(1)
 
-        self.makeIconCache()
         menu = self.updateMenu()
         self.app = Icon(name='PYTHON.win32.AstoltiaDefenseForce', title=TITLE, menu=menu)
         self.checkMetal()
@@ -163,11 +162,13 @@ class taskTray:
         for t in self.page_cache:
             icon_url = self.page_cache[t]
             target = self.getTarget(icon_url)
-            self.icon_cache[target] = _makeIconImage(icon_url)
+            if target not in self.icon_cache:
+                self.icon_cache[target] = _makeIconImage(icon_url)
 
         # メタルーキー(メタルスライム)
         icon_url = 'https://cache.hiroba.dqx.jp/dq_resource/img/tokoyami/koushin/ico/1.png'
-        self.icon_cache['1'] = _makeIconImage(icon_url)
+        if '1' not in self.icon_cache:
+            self.icon_cache['1'] = _makeIconImage(icon_url)
 
     def getIcon(self, icons):
         if self.enableMetal:
@@ -230,6 +231,9 @@ class taskTray:
                         hh, mm = tds[0].contents[0].strip().split('\xa0')[0].split(':')
                         _time = f'{int(hh):02}:{mm}'
                         self.metal_cache.append(_time)
+
+                # update icon cache
+                self.makeIconCache()
 
             print(base_url, 'updated')
 
