@@ -102,7 +102,8 @@ class taskTray:
             mm = 0
 
         if 0 <= hh <= 6:
-            hh += 24
+            if hh != 6 or mm != 30:
+                hh += 24
 
         t1 = f'{hh:02}:{mm:02}'
         hhmm = self.getNowHalf()
