@@ -13,7 +13,7 @@ from PIL import Image
 import requests
 from bs4 import BeautifulSoup
 from win11toast import notify
-from tenacity import retry, stop_after_attempt
+from tenacity import retry, stop_after_attempt, wait_fixed
 
 TITLE = 'Astoltia Defense Force'
 base_url = 'https://hiroba.dqx.jp/sc/tokoyami/#raid-container'
@@ -188,7 +188,7 @@ class taskTray:
         if update_menu:
             self.app.update_menu()
 
-    @retry(stop=stop_after_attempt(5))
+    @retry(stop=stop_after_attempt(5), wait=wait_fixed(1))
     def updatePage(self, retry=True):
         """
         毎日 6:00 に更新
