@@ -101,7 +101,7 @@ class taskTray:
             hh += 1
             mm = 0
 
-        if 0 <= hh < 6:
+        if 0 <= hh <= 6:
             hh += 24
 
         t1 = f'{hh:02}:{mm:02}'
