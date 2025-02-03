@@ -6,6 +6,7 @@ import time
 import threading
 from datetime import datetime as dt, timedelta as td, timezone as tz
 import webbrowser
+import re
 
 import schedule
 from pystray import Icon, Menu, MenuItem
@@ -16,7 +17,8 @@ from win11toast import notify
 from tenacity import retry, stop_after_attempt, wait_fixed
 
 TITLE = 'Astoltia Defense Force'
-base_url = 'https://hiroba.dqx.jp/sc/tokoyami/#raid-container'
+tokoyami_url = 'https://hiroba.dqx.jp/sc/tokoyami/#raid-container'
+tengoku_url = 'https://hiroba.dqx.jp/sc/game/tengoku'
 # 新兵団がきたら手動更新
 titles = {
     "2": "闇朱の獣牙兵団",
@@ -34,6 +36,18 @@ titles = {
     "16": "鋼塊の重滅兵団",
     "19": "全兵団",
 }
+# 源世庫: 新ボスがきたら手動更新
+panigarms = {
+    '3c82883f10a11f98a66cc966323d82ea': '源世鳥アルマナ',
+    'ce3cc47d714c3eb7289ed998f1352e13': 'じげんりゅう',
+    '5cb0b2118fa73de5802ac2af343b1788': '源世妃フォルダイナ',
+    'efab9b7fb5df0cb759999325b02b2043': '鉄巨兵ダイダルモス',
+    '614575237b24bfbd81bd68ff5e5ff922': 'パニガキャッチャー',
+    '5':                                '源世果フルポティ',
+    '6':                                '魔妖星プルタヌス',
+    'e418865d407684f7a570a4563704b5d3': '堕天使エルギオス',
+}
+NEXT_PANIGARM = 3       # days
 
 
 def resource_path(path):
@@ -54,6 +68,8 @@ class taskTray:
         self.metal_cache = []
         self.icon_cache = {}            # { "num": Image }
         self.enableMetal = True
+        self.raids = self.initRaids()   # {'tengoku': '', 'inferno': '', 'konmeiko': ''}
+        self.panigarm = []              # [start datetime, hashkey]
 
         self.updatePage(retry=False)
         if not self.page_cache:
@@ -64,6 +80,13 @@ class taskTray:
         self.app = Icon(name='PYTHON.win32.AstoltiaDefenseForce', title=TITLE, menu=menu)
         self.checkMetal()
         self.doCheck(wait=False)
+
+    def initRaids(self):
+        return {
+            'tengoku': str(),
+            'inferno': str(),
+            'konmeiko': str(),
+        }
 
     def getNow(self, fmt='%H:%M:%S'):
         return dt.now(tz(td(hours=+9), 'JST')).strftime(fmt)
@@ -92,8 +115,8 @@ class taskTray:
         return t0 <= hhmm < t1
 
     def isOverMetal(self, t0):
-        # t0  -> 00:00, 09:00, 11:30, 23:30, 02:30, 05:00, 05:30
-        # t1  -> 24:30, 09:30, 12:00, 24:00, 27:00, 29:30, 30:00
+        # t0  -> 00:00, 06:00, 09:00, 11:30, 23:30, 02:30, 05:00, 05:30
+        # t1  -> 24:30, 06:30, 09:30, 12:00, 24:00, 27:00, 29:30, 30:00
         hh = int(t0.split(':')[0])
         if t0.endswith('00'):
             mm = 30
@@ -115,7 +138,7 @@ class taskTray:
     def doOpen(self):
         self.updatePage(retry=False)
         self.doCheck(wait=False)
-        webbrowser.open(base_url)
+        webbrowser.open(tokoyami_url)
 
     def updateMenu(self):
         now = self.getNow('%H:00')
@@ -146,6 +169,28 @@ class taskTray:
 
             target = self.getTarget(self.page_cache[t])
             item.append(MenuItem(f'{t} {titles[target]}', lambda _: False, checked=lambda x: str(x).split()[0] == now))
+        item.append(Menu.SEPARATOR)
+
+        # 天獄・インフェルノ・昏冥庫
+        # yyyy/mm/dd hh:59 まで {target}
+        for key in self.raids:
+            if self.raids[key]:
+                item.append(MenuItem(f'{self.raids[key]}', lambda _: False, checked=lambda _: True))
+        if any(self.raids.values()):
+            item.append(Menu.SEPARATOR)
+
+        # panigarm
+        sdate, key = self.panigarm
+        for idx, _key in enumerate(panigarms):
+            if _key == key:
+                break
+        nxt = (idx + 1) % len(panigarms)
+        lst = list(panigarms)
+        espan = (sdate + td(days=NEXT_PANIGARM, hours=5, minutes=59)).strftime('%Y/%m/%d %H:%M まで')
+        nspan = (sdate + td(days=NEXT_PANIGARM, hours=6)).strftime('%Y/%m/%d %H:%M から')
+        item.append(MenuItem(f'{espan} {panigarms.get(key, key)}', lambda _: False, checked=lambda _: True))
+        item.append(MenuItem(f'{nspan} {panigarms[lst[nxt]]}', lambda _: False, checked=lambda _: False))
+
         item.append(Menu.SEPARATOR)
         item.append(MenuItem('Exit', self.stopApp))
         return Menu(*item)
@@ -197,7 +242,7 @@ class taskTray:
         now = self.getNow('%m/%d')
         print('>>>', self.getNow())
 
-        with requests.get(base_url, timeout=10) as r:
+        with requests.get(tokoyami_url, timeout=10) as r:
             soup = BeautifulSoup(r.content, 'html.parser')
             tables = soup.find_all('table', class_='tokoyami-raid')
             if tables:
@@ -233,10 +278,19 @@ class taskTray:
                         _time = f'{int(hh):02}:{mm}'
                         self.metal_cache.append(_time)
 
+                # panigarm
+                panigarm = soup.find_all(class_='mt20')[-1]
+                key = panigarm.find('img').get('src').split('/')[-1].split('.')[0]
+                start = re.sub(r'（.）', '', panigarm.find('div', class_='mt12').text).strip().split('\xa0')[0]
+                nums_re = re.compile(r'(?a)(\d+)')
+                yyyy, mm, dd, _, _ = re.findall(nums_re, start)
+                sdate = dt(year=int(yyyy), month=int(mm), day=int(dd))
+                self.panigarm = [sdate, key]
+
                 # update icon cache
                 self.makeIconCache()
 
-            print(base_url, 'updated')
+            print(self.getNow(), tokoyami_url, 'updated')
 
     def doCheck(self, wait=True):
         """
@@ -246,6 +300,36 @@ class taskTray:
             time.sleep(1)
 
         now = self.getNow('%H:00')
+
+        # バトルコンテンツ出現情報
+        with requests.get(tengoku_url, timeout=10) as r:
+            self.raids = self.initRaids()
+            soup = BeautifulSoup(r.content, 'html.parser')
+            # 天獄
+            # 'tengoku mt15 is-open' ?
+            # span =
+            # target =
+            self.raids['tengoku'] = '2025/02/16 04:59 まで 暴虐の幻影神'
+
+            # インフェルノ
+            # 'f-inferno mt20 is-open' ?
+            inferno = soup.find(class_='inferno mt20 is-open')
+            if inferno:
+                print(inferno)
+                # span = inferno.find(class_='f-inferno-period')
+                # target = inferno.
+            self.raids['inferno'] = '2025/02/14 11:59 まで ダークキング'
+
+            # 昏冥庫
+            konmeiko = soup.find(class_='konmeiko mt20 is-open')
+            if konmeiko:
+                span = konmeiko.find(class_='konmeiko-period').text.strip().split('\n')[-1].strip()
+                target = konmeiko.find(class_='konmeiko-target-label').text.strip()
+                self.raids['konmeiko'] = f'{span} {target}'
+
+            print(self.getNow(), tengoku_url, 'updated')
+
+        # つよさ予報の内容に更新
         icon_url = self.page_cache.get(now)
         if icon_url is None:
             self.updatePage()
@@ -262,7 +346,7 @@ class taskTray:
             self.app.title = titles[target]
             self.app.menu = self.updateMenu()
             self.app.update_menu()
-            print(now, titles[target], 'icon updated')
+            print(self.getNow(), titles[target], 'icon updated')
 
             if target == '19':
                 Dracky(f'{now} {titles[target]}')
