@@ -320,13 +320,11 @@ class taskTray:
             self.raids['tengoku'] = '2025/02/16 04:59 まで 暴虐の幻影神'
 
             # インフェルノ
-            # 'f-inferno mt20 is-open' ?
-            inferno = soup.find(class_='inferno mt20 is-open')
+            inferno = soup.find(class_='f-inferno mt20 is-open')
             if inferno:
-                print(inferno)
-                # span = inferno.find(class_='f-inferno-period')
-                # target = inferno.
-            self.raids['inferno'] = '2025/02/14 11:59 まで ダークキング'
+                span = inferno.find(class_='f-inferno-period').text.strip().split('\n')[-1].strip()
+                target = inferno.find(class_='f-inferno-target-label').text.strip()
+                self.raids['inferno'] = f'{span} {target}'
 
             # 昏冥庫
             konmeiko = soup.find(class_='konmeiko mt20 is-open')
