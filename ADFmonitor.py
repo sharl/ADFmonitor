@@ -19,6 +19,7 @@ from tenacity import retry, stop_after_attempt, wait_fixed
 TITLE = 'Astoltia Defense Force'
 tokoyami_url = 'https://hiroba.dqx.jp/sc/tokoyami/#raid-container'
 tengoku_url = 'https://hiroba.dqx.jp/sc/game/tengoku'
+MAX_MENUS = 6
 # 新兵団がきたら手動更新
 titles = {
     "2": "闇朱の獣牙兵団",
@@ -150,16 +151,21 @@ class taskTray:
 
         # metal rookies
         if self.enableMetal:
+            idx = 0
             for t in self.metal_cache:
                 # 現在以前はスキップ
                 if self.isOverMetal(t):
                     continue
 
                 item.append(MenuItem(f'{t} メタルーキー', lambda _: False, checked=lambda x: self.isMetal(str(x).split()[0])))
+                idx += 1
+                if idx >= MAX_MENUS:
+                    break
             item.append(Menu.SEPARATOR)
 
         # defense force
         matched = False
+        idx = 0
         for t in self.page_cache:
             # 現在以前はスキップ
             if t == now:
@@ -169,6 +175,9 @@ class taskTray:
 
             target = self.getTarget(self.page_cache[t])
             item.append(MenuItem(f'{t} {titles[target]}', lambda _: False, checked=lambda x: str(x).split()[0] == now))
+            idx += 1
+            if idx >= MAX_MENUS:
+                break
         item.append(Menu.SEPARATOR)
 
         # 天獄・インフェルノ・昏冥庫
