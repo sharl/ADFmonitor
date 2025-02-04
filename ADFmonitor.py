@@ -69,6 +69,7 @@ class taskTray:
         self.metal_cache = []
         self.icon_cache = {}            # { "num": Image }
         self.enableMetal = True
+        self.nowMetal = False
         self.raids = self.initRaids()   # {'tengoku': '', 'inferno': '', 'konmeiko': ''}
         self.panigarm = []              # [start datetime, hashkey]
 
@@ -226,12 +227,10 @@ class taskTray:
             self.icon_cache['1'] = _makeIconImage(icon_url)
 
     def getIcon(self, icons):
-        if self.enableMetal:
-            for t in self.metal_cache:
-                if self.isMetal(t):
-                    # 1秒毎に返すアイコンが異なる感じ
-                    second = int(self.getNow('%S'))
-                    return icons[second % 2]
+        if self.enableMetal and self.nowMetal:
+            # 1秒毎に返すアイコンが異なる感じ
+            second = int(self.getNow('%S'))
+            return icons[second % 2]
 
         return icons[0]
 
@@ -240,7 +239,7 @@ class taskTray:
         icon_adf = self.icon_cache[target]
         icon_metal = self.icon_cache['1']
         self.app.icon = self.getIcon([icon_adf, icon_metal])
-        if update_menu:
+        if update_menu and self.enableMetal and self.nowMetal:
             self.app.update_menu()
 
     @retry(stop=stop_after_attempt(5), wait=wait_fixed(1))
@@ -370,6 +369,9 @@ class taskTray:
             for t in self.metal_cache:
                 if self.isMetal(t):
                     Dracky(f'{t} メタルーキー軍団 大行進中')
+                    self.nowMetal = True
+                    return
+            self.nowMetal = False
 
     def toggleMetal(self):
         self.enableMetal = not self.enableMetal
