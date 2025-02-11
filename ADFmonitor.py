@@ -70,7 +70,7 @@ class taskTray:
         self.icon_cache = {}            # { "num": Image }
         self.enableMetal = True
         self.nowMetal = False
-        self.raids = self.initRaids()   # {'tengoku': '', 'inferno': '', 'konmeiko': ''}
+        self.raids = self.initRaids()   # {'tengoku': '', 'inferno': '', 'pani': ''}
         self.panigarm = []              # [start datetime, hashkey]
 
         self.updatePage(retry=False)
@@ -87,7 +87,7 @@ class taskTray:
         return {
             'tengoku': str(),
             'inferno': str(),
-            'konmeiko': str(),
+            'pani': str(),
         }
 
     def getNow(self, fmt='%H:%M:%S'):
@@ -185,7 +185,8 @@ class taskTray:
         # yyyy/mm/dd hh:59 まで {target}
         for key in self.raids:
             if self.raids[key]:
-                item.append(MenuItem(f'{self.raids[key]}', lambda _: False, checked=lambda _: True))
+                url = f'{tengoku_url}#_{key}'
+                item.append(MenuItem(f'{self.raids[key]}', lambda _: webbrowser.open(url), checked=lambda _: True))
         if any(self.raids.values()):
             item.append(Menu.SEPARATOR)
 
@@ -335,7 +336,7 @@ class taskTray:
             if konmeiko:
                 span = konmeiko.find(class_='konmeiko-period').text.strip().split('\n')[-1].strip()
                 target = konmeiko.find(class_='konmeiko-target-label').text.strip()
-                self.raids['konmeiko'] = f'{span} {target}'
+                self.raids['pani'] = f'{span} {target}'
 
             print(self.getNow(), tengoku_url, 'updated')
 
