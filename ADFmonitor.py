@@ -314,10 +314,14 @@ class taskTray:
             self.raids = self.initRaids()
             soup = BeautifulSoup(r.content, 'html.parser')
             # 天獄
-            # 'tengoku mt15 is-open' ?
-            # span =
-            # target =
-            self.raids['tengoku'] = '2025/02/16 04:59 まで 暴虐の幻影神'
+            tengoku = soup.find(class_='tengoku is-open mt15')
+            if tengoku:
+                _span = tengoku.find(class_='tengoku__period').text.strip().split('\n')[-1].strip()
+                yy, mm, dd, HH, MM = re.findall(r'(\d+)', _span)
+                span = f'{yy}/{int(mm):02d}/{dd} {HH}:{MM} まで'
+                target = soup.find(class_='tengoku-x-table_title').text.strip()
+                print(span, target)
+                self.raids['tengoku'] = f'{span} {target}'
 
             # インフェルノ
             inferno = soup.find(class_='f-inferno mt20 is-open')
@@ -352,7 +356,7 @@ class taskTray:
             self.app.title = titles[target]
             self.app.menu = self.updateMenu()
             self.app.update_menu()
-            print(self.getNow(), titles[target], 'icon updated')
+            print(self.getNow(), titles[target])
 
             if target == '19':
                 Dracky(f'{now} {titles[target]}')
