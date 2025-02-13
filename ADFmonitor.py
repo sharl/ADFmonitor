@@ -49,6 +49,7 @@ panigarms = {
     'e418865d407684f7a570a4563704b5d3': '堕天使エルギオス',
 }
 NEXT_PANIGARM = 3       # days
+NUMS_RE = re.compile(r'(?a)(\d+)')
 
 
 def resource_path(path):
@@ -291,8 +292,7 @@ class taskTray:
                 panigarm = soup.find_all(class_='mt20')[-1]
                 key = panigarm.find('img').get('src').split('/')[-1].split('.')[0]
                 start = re.sub(r'（.）', '', panigarm.find('div', class_='mt12').text).strip().split('\xa0')[0]
-                nums_re = re.compile(r'(?a)(\d+)')
-                yyyy, mm, dd, _, _ = re.findall(nums_re, start)
+                yyyy, mm, dd, _, _ = re.findall(NUMS_RE, start)
                 sdate = dt(year=int(yyyy), month=int(mm), day=int(dd))
                 self.panigarm = [sdate, key]
 
@@ -318,10 +318,10 @@ class taskTray:
             tengoku = soup.find(class_='tengoku is-open mt15')
             if tengoku:
                 _span = tengoku.find(class_='tengoku__period').text.strip().split('\n')[-1].strip()
-                yy, mm, dd, HH, MM = re.findall(r'(\d+)', _span)
-                span = f'{yy}/{int(mm):02d}/{dd} {HH}:{MM} まで'
+                yyyy, mm, dd, HH, MM = re.findall(NUMS_RE, _span)
+                span = f'{yyyy}/{int(mm):02d}/{dd} {HH}:{MM} まで'
                 target = soup.find(class_='tengoku-x-table_title').text.strip()
-                print(span, target)
+                print(self.getNow(), span, target)
                 self.raids['tengoku'] = f'{span} {target}'
 
             # インフェルノ
@@ -329,6 +329,7 @@ class taskTray:
             if inferno:
                 span = inferno.find(class_='f-inferno-period').text.strip().split('\n')[-1].strip()
                 target = inferno.find(class_='f-inferno-target-label').text.strip()
+                print(self.getNow(), span, target)
                 self.raids['inferno'] = f'{span} {target}'
 
             # 昏冥庫
@@ -336,6 +337,7 @@ class taskTray:
             if konmeiko:
                 span = konmeiko.find(class_='konmeiko-period').text.strip().split('\n')[-1].strip()
                 target = konmeiko.find(class_='konmeiko-target-label').text.strip()
+                print(self.getNow(), span, target)
                 self.raids['pani'] = f'{span} {target}'
 
             print(self.getNow(), tengoku_url, 'updated')
