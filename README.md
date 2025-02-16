@@ -17,6 +17,10 @@ Windows のタスクトレイに常駐して現在襲撃中の兵団を手軽に
 
 ## Run
 
+[Release ページ](https://github.com/sharl/ADFmonitor/releases/latest) から zip で圧縮した Windows 用実行ファイルをダウンロードして実行してください
+
+ソースコードから実行したい場合は以下の手順を参照してください
+
 ```
 git clone https://github.com/sharl/ADFmonitor.git
 cd ADFmonitor
