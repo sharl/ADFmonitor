@@ -7,6 +7,7 @@ import threading
 from datetime import datetime as dt, timedelta as td, timezone as tz
 import webbrowser
 import re
+import ctypes
 
 import schedule
 from pystray import Icon, Menu, MenuItem
@@ -15,6 +16,7 @@ import requests
 from bs4 import BeautifulSoup
 from win11toast import notify
 from tenacity import retry, stop_after_attempt, wait_fixed
+import darkdetect as dd
 
 TITLE = 'Astoltia Defense Force'
 tokoyami_url = 'https://hiroba.dqx.jp/sc/tokoyami/#raid-container'
@@ -50,6 +52,14 @@ panigarms = {
 }
 NEXT_PANIGARM = 3       # days
 NUMS_RE = re.compile(r'(?a)(\d+)')
+
+PreferredAppMode = {
+    'Light': 0,
+    'Dark': 1,
+}
+
+# https://github.com/moses-palmer/pystray/issues/130
+ctypes.windll['uxtheme.dll'][135](PreferredAppMode[dd.theme()])
 
 
 def resource_path(path):

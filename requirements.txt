@@ -4,3 +4,4 @@ tenacity
 requests
 bs4
 win11toast
+darkdetect
