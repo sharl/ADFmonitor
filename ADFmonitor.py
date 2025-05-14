@@ -21,7 +21,7 @@ import darkdetect as dd
 TITLE = 'Astoltia Defense Force'
 tokoyami_url = 'https://hiroba.dqx.jp/sc/tokoyami/#raid-container'
 tengoku_url = 'https://hiroba.dqx.jp/sc/game/tengoku'
-MAX_MENUS = 6
+MAX_MENUS = 8
 # 新兵団がきたら手動更新
 titles = {
     "2": "闇朱の獣牙兵団",
@@ -300,11 +300,12 @@ class taskTray:
                         self.metal_cache.append(_time)
 
                 # panigarm
-                panigarm = soup.find_all(class_='mt20')[-1]
+                panigarm = soup.find(class_='tokoyami-panigarm')
                 key = panigarm.find('img').get('src').split('/')[-1].split('.')[0]
-                start = re.sub(r'（.）', '', panigarm.find('div', class_='mt12').text).strip().split('\xa0')[0]
-                yyyy, mm, dd, _, _ = re.findall(NUMS_RE, start)
-                sdate = dt(year=int(yyyy), month=int(mm), day=int(dd))
+                start = re.sub(r'（.）', '', panigarm.find_all('th')[1].text.strip())
+                yyyy = dt.now(tz(td(hours=+9), 'JST')).year
+                mm, dd = re.findall(NUMS_RE, start)
+                sdate = dt(year=yyyy, month=int(mm), day=int(dd))
                 self.panigarm = [sdate, key]
 
                 # update icon cache
