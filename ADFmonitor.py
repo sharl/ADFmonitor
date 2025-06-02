@@ -82,7 +82,11 @@ class taskTray:
         self.icon_cache = {}            # { "num": Image }
         self.enableMetal = True
         self.nowMetal = False
-        self.raids = self.initRaids()   # {'tengoku': '', 'inferno': '', 'pani': ''}
+        self.raids = self.initRaids()   # {'tengoku': '', 'inferno': '', 'pani': '', 'ikai': ''}
+        self.xclass = {
+            'inferno': 'f-inferno',
+            'pani': 'konmeiko',
+        }
         self.panigarm = []              # [start datetime, hashkey]
 
         self.updatePage(retry=False)
@@ -100,6 +104,7 @@ class taskTray:
             'tengoku': str(),
             'inferno': str(),
             'pani': str(),
+            'ikai': str(),
         }
 
     def getNow(self, fmt='%H:%M:%S'):
@@ -193,7 +198,7 @@ class taskTray:
                 break
         item.append(Menu.SEPARATOR)
 
-        # 天獄・インフェルノ・昏冥庫
+        # 天獄・インフェルノ・昏冥庫・異界の創造主
         # yyyy/mm/dd hh:59 まで {target}
         for key in self.raids:
             if self.raids[key]:
@@ -336,21 +341,21 @@ class taskTray:
                 print(self.getNow(), span, target)
                 self.raids['tengoku'] = f'{span} {target}'
 
-            # インフェルノ
-            inferno = soup.find(class_='f-inferno mt20 is-open')
-            if inferno:
-                span = inferno.find(class_='f-inferno-period').text.strip().split('\n')[-1].strip()
-                target = inferno.find(class_='f-inferno-target-label').text.strip()
-                print(self.getNow(), span, target)
-                self.raids['inferno'] = f'{span} {target}'
-
-            # 昏冥庫
-            konmeiko = soup.find(class_='konmeiko mt20 is-open')
-            if konmeiko:
-                span = konmeiko.find(class_='konmeiko-period').text.strip().split('\n')[-1].strip()
-                target = konmeiko.find(class_='konmeiko-target-label').text.strip()
-                print(self.getNow(), span, target)
-                self.raids['pani'] = f'{span} {target}'
+            # インフェルノ・昏冥庫・異界の創造主 (一部分共通化)
+            for key in list(self.raids)[1:]:
+                class_ = key
+                if key in self.xclass:
+                    class_ = self.xclass[key]
+                opened = soup.find(class_=f'{class_} mt20 is-open')
+                if opened:
+                    span = opened.find(class_=f'{class_}-period').text.strip().split('\n')[-1].strip()
+                    target = opened.find(class_=f'{class_}-target-label')
+                    if key == 'ikai' and target is None:
+                        target = '異界の創造主'
+                    else:
+                        target = target.text.strip()
+                    print(self.getNow(), span, target)
+                    self.raids[key] = f'{span} {target}'
 
             print(self.getNow(), tengoku_url, 'updated')
 
