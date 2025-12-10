@@ -8,6 +8,7 @@ from datetime import datetime as dt, timedelta as td, timezone as tz
 import webbrowser
 import re
 import ctypes
+import wave
 
 import schedule
 from pystray import Icon, Menu, MenuItem
@@ -17,6 +18,7 @@ from bs4 import BeautifulSoup
 from win11toast import notify
 from tenacity import retry, stop_after_attempt, wait_fixed
 import darkdetect as dd
+import pyaudio
 
 TITLE = 'Astoltia Defense Force'
 tokoyami_url = 'https://hiroba.dqx.jp/sc/tokoyami/#raid-container'
@@ -38,6 +40,7 @@ titles = {
     "15": "青鮮の菜果兵団",
     "16": "鋼塊の重滅兵団",
     "17": "金神の遺宝兵団",
+    "18": "紅爆の暴賊兵団",
     "19": "全兵団",
 }
 # 源世庫: 新ボスがきたら手動更新
@@ -58,7 +61,6 @@ PreferredAppMode = {
     'Light': 0,
     'Dark': 1,
 }
-
 # https://github.com/moses-palmer/pystray/issues/130
 ctypes.windll['uxtheme.dll'][135](PreferredAppMode[dd.theme()])
 
@@ -70,7 +72,22 @@ def resource_path(path):
 
 
 def Dracky(body):
-    notify(body, app_id=TITLE, audio=resource_path('Assets/nc308516.mp3'))
+    notify(body, app_id=TITLE, audio={'silent': 'true'})
+
+    with wave.open(resource_path('Assets/nc308516m.wav'), 'rb') as wf:
+        data = wf.readframes(wf.getnframes())
+
+        pya = pyaudio.PyAudio()
+        stream = pya.open(
+            format=pya.get_format_from_width(wf.getsampwidth()),
+            channels=wf.getnchannels(),
+            rate=wf.getframerate(),
+            output=True,
+        )
+        stream.write(data)
+        stream.stop_stream()
+        stream.close()
+        pya.terminate()
 
 
 class taskTray:

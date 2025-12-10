@@ -27,7 +27,7 @@ jobs:
 
       - name: Create executable file with pyinstaller and zip
         run: |
-          pyinstaller ADFmonitor.py --onefile --noconsole --icon Assets/sample.ico --add-data Assets/nc308516.mp3:Assets
+          pyinstaller ADFmonitor.py --onefile --noconsole --icon Assets/sample.ico --add-data Assets/nc308516m.wav:Assets
           pushd dist
           Compress-Archive -Path . -DestinationPath ${{ github.event.repository.name }}-${{ env.VERSION }}.zip
           popd
