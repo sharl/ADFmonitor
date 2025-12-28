@@ -43,6 +43,8 @@ titles = {
     "18": "紅爆の暴賊兵団",
     "19": "全兵団",
 }
+# 紫炎の鉄機兵団, 全兵団
+NOTIFICATION_TARGET = ['3', '19']
 # 源世庫: 新ボスがきたら手動更新
 panigarms = {
     '3c82883f10a11f98a66cc966323d82ea': '源世鳥アルマナ',
@@ -209,7 +211,7 @@ class taskTray:
                 continue
 
             target = self.getTarget(self.page_cache[t])
-            item.append(MenuItem(f'{t} {titles[target]}', lambda _: False, checked=lambda x: str(x).split()[0] == now))
+            item.append(MenuItem(f'{t} {titles[target]}', lambda _: False, enabled=target in NOTIFICATION_TARGET, checked=lambda x: str(x).split()[0] == now))
             idx += 1
             if idx >= MAX_MENUS:
                 break
@@ -395,7 +397,7 @@ class taskTray:
             self.app.update_menu()
             print(self.getNow(), titles[target])
 
-            if target == '19':
+            if target in NOTIFICATION_TARGET:
                 Dracky(f'{now} {titles[target]}')
 
     def checkMetal(self):
