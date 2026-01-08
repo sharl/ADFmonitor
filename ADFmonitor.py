@@ -8,7 +8,7 @@ from datetime import datetime as dt, timedelta as td, timezone as tz
 import webbrowser
 import re
 import ctypes
-import wave
+import winsound as ws
 
 import schedule
 from pystray import Icon, Menu, MenuItem
@@ -18,7 +18,6 @@ from bs4 import BeautifulSoup
 from win11toast import notify
 from tenacity import retry, stop_after_attempt, wait_fixed
 import darkdetect as dd
-import pyaudio
 
 TITLE = 'Astoltia Defense Force'
 tokoyami_url = 'https://hiroba.dqx.jp/sc/tokoyami/#raid-container'
@@ -75,21 +74,7 @@ def resource_path(path):
 
 def Dracky(body):
     notify(body, app_id=TITLE, audio={'silent': 'true'})
-
-    with wave.open(resource_path('Assets/nc308516m.wav'), 'rb') as wf:
-        data = wf.readframes(wf.getnframes())
-
-        pya = pyaudio.PyAudio()
-        stream = pya.open(
-            format=pya.get_format_from_width(wf.getsampwidth()),
-            channels=wf.getnchannels(),
-            rate=wf.getframerate(),
-            output=True,
-        )
-        stream.write(data)
-        stream.stop_stream()
-        stream.close()
-        pya.terminate()
+    ws.PlaySound(resource_path('Assets/nc308516m.wav'), ws.SND_FILENAME)
 
 
 class taskTray:
