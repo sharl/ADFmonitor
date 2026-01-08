@@ -12,7 +12,7 @@ import winsound as ws
 
 import schedule
 from pystray import Icon, Menu, MenuItem
-from PIL import Image
+from PIL import Image, ImageDraw
 import requests
 from bs4 import BeautifulSoup
 from win11toast import notify
@@ -44,6 +44,7 @@ titles = {
 }
 # 紫炎の鉄機兵団, 全兵団
 NOTIFICATION_TARGET = ['3', '19']
+GOLD = (255, 215, 0)
 # 源世庫: 新ボスがきたら手動更新
 panigarms = {
     '3c82883f10a11f98a66cc966323d82ea': '源世鳥アルマナ',
@@ -234,6 +235,10 @@ class taskTray:
                 w, h = image.size
                 # crop center
                 icon_image = image.crop(((w - h) // 2, 0, (w + h) // 2, h)).resize((16, 16))
+                # add gold frame
+                if self.getTarget(icon_url) in NOTIFICATION_TARGET:
+                    draw = ImageDraw.Draw(icon_image)
+                    draw.rectangle((0, 0, 15, 15), outline=GOLD, width=2)
                 return icon_image
 
         # 防衛軍
@@ -310,7 +315,7 @@ class taskTray:
 
                 # panigarm
                 panigarm = soup.find(class_='tokoyami-panigarm')
-                key = panigarm.find('img').get('src').split('/')[-1].split('.')[0]
+                key = self.getTarget(panigarm.find('img').get('src'))
                 start = re.sub(r'（.）', '', panigarm.find_all('th')[1].text.strip())
                 yyyy = dt.now(tz(td(hours=+9), 'JST')).year
                 mm, dd = re.findall(NUMS_RE, start)
