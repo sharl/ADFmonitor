@@ -244,6 +244,9 @@ class taskTray:
             'inferno': 'f-inferno',
             'pani': 'konmeiko',
         }
+        self.xnames = {
+            'pani': 'konmeiko',
+        }
         self.panigarm = []              # [start datetime, hashkey]
 
         self.viewer = ImageViewer()
@@ -514,6 +517,14 @@ class taskTray:
             soup = BeautifulSoup(r.content, 'html.parser')
 
             # badge debug start
+
+            # これやめてテキストから画像にするかも
+            # 天獄
+            # フェスタ
+            # 昏冥庫
+            # 異界
+            # でセンタリング
+
             # closed の場合
             # https://cache.hiroba.dqx.jp/dq_resource/img/common/right/navi/battle/tengoku.jpg?29439811
             # https://cache.hiroba.dqx.jp/dq_resource/img/common/right/navi/battle/inferno.jpg?29439811
@@ -600,10 +611,12 @@ class taskTray:
             print(target, self.badge_cache[target])
         print('<< badges')
 
+        # badge debug
         # バッジの更新
         images = []
         # バトルコンテンツを追加
-        for badge in 'tengoku_close inferno_close konmeiko_close ikai_close'.split():
+        for _badge in self.raids:
+            badge = (self.xnames[_badge] if _badge in self.xnames else _badge) + ('_open' if self.raids[_badge] else '_close')
             images.append(self.badge_cache[badge])
         # 現在の源世庫を追加
         if self.icon_url:
