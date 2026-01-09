@@ -193,9 +193,27 @@ class ImageViewer(threading.Thread):
         self._force_topmost()
 
     def drag_window(self, event):
-        x = self.root.winfo_x() + (event.x - self.offset_x)
-        y = self.root.winfo_y() + (event.y - self.offset_y)
-        self.root.geometry(f"+{x}+{y}")
+        if self.root:
+            # 1. マウスの動きから計算上の新しい位置を出す
+            new_x = self.root.winfo_x() + (event.x - self.offset_x)
+            new_y = self.root.winfo_y() + (event.y - self.offset_y)
+
+            # 2. 画面の幅と高さを取得
+            screen_w = self.root.winfo_screenwidth()
+            screen_h = self.root.winfo_screenheight()
+
+            # 3. ウィンドウ自体の幅と高さを取得
+            win_w = self.root.winfo_width()
+            win_h = self.root.winfo_height()
+
+            # 4. 座標を画面内に収める (クランプ処理)
+            # 左端(0) と 右端(画面幅 - ウィンドウ幅) の間に収める
+            new_x = max(0, min(new_x, screen_w - win_w))
+            # 上端(0) と 下端(画面高 - ウィンドウ高) の間に収める
+            new_y = max(0, min(new_y, screen_h - win_h))
+
+            # 5. 制限された座標を適用
+            self.root.geometry(f"+{new_x}+{new_y}")
 
     def show(self, pil_images):
         if not self._ready:
