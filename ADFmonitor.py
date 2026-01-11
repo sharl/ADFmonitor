@@ -465,7 +465,7 @@ class taskTray:
         for _badge in self.raids:
             badge = (self.xnames[_badge] if _badge in self.xnames else _badge) + ('_open' if self.raids[_badge] else '_close')
             images.append(self.badge_cache[badge])
-        # 現在の源世庫を追加
+        # 現在の襲撃兵団を追加
         if self.icon_url:
             target = self.getTarget(self.icon_url)
             images.append(self.badge_cache[target])
