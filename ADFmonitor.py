@@ -19,7 +19,7 @@ from win11toast import notify
 from tenacity import retry, stop_after_attempt, wait_fixed
 import darkdetect as dd
 
-from Badge import Badge
+from Badges import Badges
 
 TITLE = 'Astoltia Defense Force'
 tokoyami_url = 'https://hiroba.dqx.jp/sc/tokoyami/#raid-container'
@@ -100,8 +100,9 @@ class taskTray:
         }
         self.panigarm = []              # [start datetime, hashkey]
 
-        self.badge = Badge()
-        self.badge.start()
+        self.show_badges = False
+        self.badges = Badges()
+        self.badges.start()
 
         self.updatePage(retry=False)
         if not self.page_cache:
@@ -173,21 +174,16 @@ class taskTray:
         self.doCheck(wait=False)
         webbrowser.open(tokoyami_url)
 
-    def on_show_images(self, icon, item):
-        # 2. ユーザーが表示を選んだら、表示するだけ
-        self.badge.set_visible(True)
-
-    def on_hide_images(self, icon, item):
-        # 3. 隠すだけ
-        self.badge.set_visible(False)
+    def toggleBadges(self, _, __):
+        self.show_badges = not self.show_badges
+        self.badges.set_visible(self.show_badges)
 
     def updateMenu(self):
         now = self.getNow('%H:00')
         item = [
             MenuItem('Open', self.doOpen, default=True, visible=False),
 
-            MenuItem('Show Badges', self.on_show_images),
-            MenuItem('Hide Badges', self.on_hide_images),
+            MenuItem('Show Badges', self.toggleBadges, checked=lambda _: self.show_badges),
             Menu.SEPARATOR,
 
             MenuItem('Check Metal Rookies', self.toggleMetal, checked=lambda _: self.enableMetal),
@@ -474,7 +470,7 @@ class taskTray:
             target = self.getTarget(self.icon_url)
             images.append(self.badge_cache[target])
 
-        self.badge.update(images)
+        self.badges.update(images)
 
     def checkMetal(self):
         """

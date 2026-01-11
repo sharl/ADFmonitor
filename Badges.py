@@ -4,7 +4,7 @@ import tkinter as tk
 from PIL import ImageTk
 
 
-class Badge(threading.Thread):
+class Badges(threading.Thread):
     def __init__(self):
         super().__init__(daemon=True)
         self.root = None
@@ -14,6 +14,8 @@ class Badge(threading.Thread):
         self.trans_color = '#abcdef'
         self.offset_x = 0
         self.offset_y = 0
+        self.orientation = 'horizontal'
+        self.current_images = []
 
     def run(self):
         self.root = tk.Tk()
@@ -43,10 +45,21 @@ class Badge(threading.Thread):
         self._ready = True
         self.root.mainloop()
 
-    def update(self, pil_images):
+    def toggle_orientation(self):
+        orientation = 'vertical' if self.orientation == 'horizontal' else 'horizontal'
+        self.update(self.current_images, orientation=orientation)
+
+    def update(self, pil_images, orientation=None):
         """表示状態にかかわらず、containerの中身を最新にする"""
         if not self._ready:
             return
+
+        if pil_images is not None:
+            self.current_images = pil_images
+
+        # 指定があれば更新、なければ現在の状態を維持
+        if orientation:
+            self.orientation = orientation
 
         def _do_update():
             # 既存のウィジェットを掃除
@@ -54,8 +67,10 @@ class Badge(threading.Thread):
                 widget.destroy()
             self.photo_refs.clear()
 
+            side_option = tk.LEFT if self.orientation == 'horizontal' else tk.TOP
+
             # 新しい画像を配置
-            for img_obj in pil_images:
+            for img_obj in self.current_images:
                 tk_img = ImageTk.PhotoImage(img_obj)
                 self.photo_refs.append(tk_img)
                 label = tk.Label(self.container, image=tk_img, bg=self.trans_color)
@@ -63,12 +78,13 @@ class Badge(threading.Thread):
                 # イベントバインド
                 label.bind('<Button-1>', self.start_drag)
                 label.bind('<B1-Motion>', self.drag_window)
-                # label.bind('<Button-3>', lambda e: self.set_visible(False))
-                label.pack(side=tk.LEFT, padx=0)
+                label.bind('<Button-3>', lambda e: self.toggle_orientation())
+                label.pack(side=side_option, padx=0, pady=0)
 
             # コンテナサイズを再計算
             self.root.geometry('')
             self.root.update_idletasks()
+            self._clamp_position()
 
             # 表示中なら最前面を再適用
             if self.root.state() == 'normal':
@@ -76,6 +92,15 @@ class Badge(threading.Thread):
 
         # スレッドセーフに実行
         self.root.after(0, _do_update)
+
+    def _clamp_position(self):
+        """現在の位置が画面外なら中に戻す処理（ドラッグ中以外でも有用）"""
+        x, y = self.root.winfo_x(), self.root.winfo_y()
+        sw, sh = self.root.winfo_screenwidth(), self.root.winfo_screenheight()
+        ww, wh = self.root.winfo_width(), self.root.winfo_height()
+        nx = max(0, min(x, sw - ww))
+        ny = max(0, min(y, sh - wh))
+        self.root.geometry(f"+{nx}+{ny}")
 
     # --- 2. 表示状態だけを切り替えるメソッド ---
     def set_visible(self, visible: bool):
@@ -138,33 +163,3 @@ class Badge(threading.Thread):
 
             # 5. 制限された座標を適用
             self.root.geometry(f'+{new_x}+{new_y}')
-
-    def show(self, pil_images):
-        if not self._ready:
-            return
-
-        def update():
-            for widget in self.container.winfo_children():
-                widget.destroy()
-            self.photo_refs.clear()
-
-            for img_obj in pil_images:
-                tk_img = ImageTk.PhotoImage(img_obj)
-                self.photo_refs.append(tk_img)
-                label = tk.Label(self.container, image=tk_img, bg=self.trans_color)
-                label.bind('<Button-1>', self.start_drag)
-                label.bind('<B1-Motion>', self.drag_window)
-                # label.bind('<Button-3>', lambda e: self.hide())
-                label.pack(side=tk.LEFT, padx=5)
-
-            # フィットさせて表示
-            self.root.geometry('')
-            self.root.update_idletasks()
-            self.root.deiconify()
-            self._force_topmost()
-
-        self.root.after(0, update)
-
-    def hide(self):
-        if self.root:
-            self.root.withdraw()
