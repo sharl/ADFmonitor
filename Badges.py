@@ -84,7 +84,7 @@ class Badges(threading.Thread):
             # コンテナサイズを再計算
             self.root.geometry('')
             self.root.update_idletasks()
-            self._clamp_position()
+            self.root.after(100, self._clamp_position)
 
             # 表示中なら最前面を再適用
             if self.root.state() == 'normal':
