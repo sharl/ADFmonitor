@@ -62,36 +62,55 @@ class Badges(threading.Thread):
             self.orientation = orientation
 
         def _do_update():
-            # 既存のウィジェットを掃除
             for widget in self.container.winfo_children():
                 widget.destroy()
             self.photo_refs.clear()
 
-            side_option = tk.LEFT if self.orientation == 'horizontal' else tk.TOP
+            # メインの並び方向
+            main_side = tk.LEFT if self.orientation == 'horizontal' else tk.TOP
 
-            # 新しい画像を配置
-            for img_obj in self.current_images:
-                tk_img = ImageTk.PhotoImage(img_obj)
-                self.photo_refs.append(tk_img)
-                label = tk.Label(self.container, image=tk_img, bg=self.trans_color)
+            for item in self.current_images:
+                if not isinstance(item, list):
+                    # --- 単体画像の場合 ---
+                    self._create_image_label(self.container, item, main_side)
+                else:
+                    # --- リストの場合：横並びのグループ(Frame)を作る ---
+                    group_frame = tk.Frame(self.container, bg=self.trans_color)
 
-                # イベントバインド
-                label.bind('<Button-1>', self.start_drag)
-                label.bind('<B1-Motion>', self.drag_window)
-                label.bind('<Button-3>', lambda e: self.toggle_orientation())
-                label.pack(side=side_option, padx=0, pady=0)
+                    # 縦並び(TOP)の時は、横方向(X)に最大まで広げる
+                    if self.orientation == 'vertical':
+                        group_frame.pack(side=main_side, fill=tk.X, padx=0, pady=0)
+                    else:
+                        group_frame.pack(side=main_side, padx=0, pady=0)
 
-            # コンテナサイズを再計算
+                    # グループ内の画像を配置
+                    for img_obj in item:
+                        # expand=True を入れることで、親Frameの幅の中で均等にスペースを分け合う
+                        self._create_image_label(group_frame, img_obj, tk.LEFT, expand=True)
+
             self.root.geometry('')
             self.root.update_idletasks()
             self.root.after(0, self._clamp_position)
 
-            # 表示中なら最前面を再適用
             if self.root.state() == 'normal':
                 self._force_topmost()
 
-        # スレッドセーフに実行
         self.root.after(0, _do_update)
+
+    def _create_image_label(self, parent, img_obj, side, expand=False):
+        """画像を生成してイベントをバインドする共通処理"""
+        tk_img = ImageTk.PhotoImage(img_obj)
+        self.photo_refs.append(tk_img)
+
+        label = tk.Label(parent, image=tk_img, bg=self.trans_color)
+
+        # どの画像をクリックしてもウィンドウ全体を操作できるようにバインド
+        label.bind('<Button-1>', self.start_drag)
+        label.bind('<B1-Motion>', self.drag_window)
+        label.bind('<Button-3>', lambda e: self.toggle_orientation())
+
+        label.pack(side=side, padx=0, pady=0, expand=expand)
+        return label
 
     def _clamp_position(self):
         """現在の位置が画面外なら中に戻す処理（ドラッグ中以外でも有用）"""
