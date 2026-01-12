@@ -12,7 +12,7 @@ import winsound as ws
 
 import schedule
 from pystray import Icon, Menu, MenuItem
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageEnhance
 import requests
 from bs4 import BeautifulSoup
 from win11toast import notify
@@ -232,15 +232,16 @@ class taskTray:
 
         # panigarm
         sdate, key = self.panigarm
-        for idx, _key in enumerate(panigarms):
-            if _key == key:
-                break
-        nxt = (idx + 1) % len(panigarms)
         lst = list(panigarms)
+        idx = lst.index(key)
+        nxt = (idx + 1) % len(panigarms)
+        nnxt = (idx + 2) % len(panigarms)
         espan = (sdate + td(days=NEXT_PANIGARM, hours=5, minutes=59)).strftime('%Y/%m/%d %H:%M まで')
         nspan = (sdate + td(days=NEXT_PANIGARM, hours=6)).strftime('%Y/%m/%d %H:%M から')
+        nnspan = (sdate + td(days=NEXT_PANIGARM * 2, hours=6)).strftime('%Y/%m/%d %H:%M から')
         item.append(MenuItem(f'{espan} {panigarms.get(key, key)}', lambda _: False, checked=lambda _: True))
         item.append(MenuItem(f'{nspan} {panigarms[lst[nxt]]}', lambda _: False, checked=lambda _: False))
+        item.append(MenuItem(f'{nnspan} {panigarms[lst[nnxt]]}', lambda _: False, checked=lambda _: False))
 
         item.append(Menu.SEPARATOR)
         item.append(MenuItem('Exit', self.stopApp))
@@ -337,12 +338,27 @@ class taskTray:
 
                 # panigarm
                 panigarm = soup.find(class_='tokoyami-panigarm')
-                key = self.getTarget(panigarm.find('img').get('src'))
+                icon_url = panigarm.find('img').get('src')
+                key = self.getTarget(icon_url)
                 start = re.sub(r'（.）', '', panigarm.find_all('th')[1].text.strip())
                 yyyy = dt.now(tz(td(hours=+9), 'JST')).year
                 mm, dd = re.findall(NUMS_RE, start)
                 sdate = dt(year=yyyy, month=int(mm), day=int(dd))
                 self.panigarm = [sdate, key]
+
+                # store panigarms badge
+                def _storePanigarmBadge(icon_url):
+                    target = self.getTarget(icon_url)
+                    if target not in self.badge_cache:
+                        with requests.get(icon_url) as r:
+                            image = Image.open(io.BytesIO(r.content)).resize((27, 27))
+                            self.badge_cache[target] = image
+
+                pani_url_fmt = icon_url.replace(key, '{}')
+                for _key in panigarms:
+                    if _key not in self.badge_cache:
+                        pani_img_url = pani_url_fmt.format(_key)
+                        _storePanigarmBadge(pani_img_url)
 
                 # update icon cache
                 self.makeIconCache()
@@ -453,10 +469,10 @@ class taskTray:
                 Dracky(f'{now} {titles[target]}')
 
         # badge debug
-        print('>> badges')
-        for target in sorted(self.badge_cache):
-            print(target, self.badge_cache[target])
-        print('<< badges')
+        # print('>> badges')
+        # for target in sorted(self.badge_cache):
+        #     print(target, self.badge_cache[target])
+        # print('<< badges')
 
         # badge debug
         # バッジの更新
@@ -465,6 +481,22 @@ class taskTray:
         for _badge in self.raids:
             badge = (self.xnames[_badge] if _badge in self.xnames else _badge) + ('_open' if self.raids[_badge] else '_close')
             images.append(self.badge_cache[badge])
+
+        # 源世庫パニガルム
+        def dimm(image):
+            return ImageEnhance.Brightness(image).enhance(0.6).convert('L')
+
+        _, key = self.panigarm
+        lst = list(panigarms)
+        ic0 = lst.index(key)                    # now
+        ic1 = (ic0 + 1) % len(panigarms)        # next
+        ic2 = (ic1 + 1) % len(panigarms)        # next next
+        images.append([                         # list
+            self.badge_cache[lst[ic0]],
+            dimm(self.badge_cache[lst[ic1]]),
+            dimm(self.badge_cache[lst[ic2]]),
+        ])
+
         # 現在の襲撃兵団を追加
         if self.icon_url:
             target = self.getTarget(self.icon_url)
