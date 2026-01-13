@@ -27,8 +27,9 @@ class Badges(threading.Thread):
 
         # 枠なし・最前面・タスクバーアイコン非表示
         self.root.overrideredirect(True)
+        self.root.protocol('WM_DELETE_WINDOW', self.toggle_title)
         self.root.attributes('-topmost', True)
-        self.root.attributes('-toolwindow', True)
+        # self.root.attributes('-toolwindow', True)
 
         # マウスイベント
         self.root.bind('<Button-1>', self.start_drag)
@@ -44,6 +45,12 @@ class Badges(threading.Thread):
 
         self._ready = True
         self.root.mainloop()
+
+    def toggle_title(self):
+        is_hidden = self.root.overrideredirect()
+        self.root.overrideredirect(not is_hidden)
+        self.root.update()
+        self.root.after(0, self._clamp_position)
 
     def toggle_orientation(self):
         orientation = 'vertical' if self.orientation == 'horizontal' else 'horizontal'
@@ -113,13 +120,36 @@ class Badges(threading.Thread):
         return label
 
     def _clamp_position(self):
-        """現在の位置が画面外なら中に戻す処理（ドラッグ中以外でも有用）"""
-        x, y = self.root.winfo_x(), self.root.winfo_y()
-        sw, sh = self.root.winfo_screenwidth(), self.root.winfo_screenheight()
-        ww, wh = self.root.winfo_width(), self.root.winfo_height()
-        nx = max(0, min(x, sw - ww))
-        ny = max(0, min(y, sh - wh))
-        self.root.geometry(f"+{nx}+{ny}")
+        if not self.root:
+            return
+
+        self.root.update_idletasks()
+        self.root.update()
+
+        geom = self.root.geometry()
+        parts = geom.replace('x', '+').split('+')
+        curr_x = int(parts[2])
+        curr_y = int(parts[3])
+
+        ww = self.root.winfo_width()
+        wh = self.root.winfo_height()
+
+        if not self.root.overrideredirect():
+            border_w = self.root.winfo_rootx() - curr_x
+            title_h = self.root.winfo_rooty() - curr_y
+            full_ww = ww + (border_w * 2)
+            full_wh = wh + title_h + border_w
+        else:
+            full_ww = ww
+            full_wh = wh
+
+        sw = self.root.winfo_screenwidth()
+        sh = self.root.winfo_screenheight()
+
+        nx = max(0, min(curr_x, sw - full_ww))
+        ny = max(0, min(curr_y, sh - full_wh))
+
+        self.root.geometry(f'+{nx}+{ny}')
 
     # --- 2. 表示状態だけを切り替えるメソッド ---
     def set_visible(self, visible: bool):

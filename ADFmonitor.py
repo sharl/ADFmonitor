@@ -178,12 +178,16 @@ class taskTray:
         self.show_badges = not self.show_badges
         self.badges.set_visible(self.show_badges)
 
+    def toggleTitle(self, _, __):
+        self.badges.toggle_title()
+
     def updateMenu(self):
         now = self.getNow('%H:00')
         item = [
             MenuItem('Open', self.doOpen, default=True, visible=False),
 
             MenuItem('Show Badges', self.toggleBadges, checked=lambda _: self.show_badges),
+            MenuItem('Toggle Badges Title Bar', self.toggleTitle),
             Menu.SEPARATOR,
 
             MenuItem('Check Metal Rookies', self.toggleMetal, checked=lambda _: self.enableMetal),
