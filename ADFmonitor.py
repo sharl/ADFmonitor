@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import os
 import sys
 import io
 import time
@@ -19,6 +18,7 @@ from win11toast import notify
 from tenacity import retry, stop_after_attempt, wait_fixed
 import darkdetect as dd
 
+from utils import resource_path
 from Badges import Badges
 
 TITLE = 'Astoltia Defense Force'
@@ -67,12 +67,6 @@ PreferredAppMode = {
 }
 # https://github.com/moses-palmer/pystray/issues/130
 ctypes.windll['uxtheme.dll'][135](PreferredAppMode[dd.theme()])
-
-
-def resource_path(path):
-    if hasattr(sys, '_MEIPASS'):
-        return os.path.join(sys._MEIPASS, path)
-    return os.path.join(os.path.abspath('.'), path)
 
 
 def Dracky(body):

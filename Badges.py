@@ -3,6 +3,8 @@ import threading
 import tkinter as tk
 from PIL import ImageTk
 
+from utils import resource_path
+
 
 class Badges(threading.Thread):
     def __init__(self):
@@ -37,7 +39,7 @@ class Badges(threading.Thread):
         self.root.bind('<B1-Motion>', self.drag_window)
 
         # アイコン設定
-        self.root.iconbitmap('Assets/sample.ico')
+        self.root.iconbitmap(resource_path('Assets/sample.ico'))
 
         self.root.withdraw()
 
