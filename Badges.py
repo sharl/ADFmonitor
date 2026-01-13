@@ -29,18 +29,21 @@ class Badges(threading.Thread):
         self.root.overrideredirect(True)
         self.root.protocol('WM_DELETE_WINDOW', self.toggle_title)
         self.root.attributes('-topmost', True)
+        self.root.resizable(False, False)
         # self.root.attributes('-toolwindow', True)
 
         # マウスイベント
         self.root.bind('<Button-1>', self.start_drag)
         self.root.bind('<B1-Motion>', self.drag_window)
 
+        # アイコン設定
+        self.root.iconbitmap('Assets/sample.ico')
+
         self.root.withdraw()
 
         self.container = tk.Frame(self.root, bg=self.trans_color)
         self.container.pack(padx=0, pady=0)
 
-        # ★【最終手段】最前面を維持し続けるループを開始
         self._keep_on_top_loop()
 
         self._ready = True
