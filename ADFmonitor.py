@@ -94,7 +94,28 @@ class taskTray:
         }
         self.panigarm = []              # [start datetime, hashkey]
 
+        # バッジ周り初期化
         self.show_badges = False
+        self.raidLabel = {
+            'tengoku': '邪神の宮殿 天獄',
+            'inferno': 'フェスタ・インフェルノ',
+            'pani': '昏冥庫パニガルム',
+            'ikai': '異界の創造主',
+        }
+        self.select_badges = {}
+        # サブメニュー登録
+        self.badge_submenu = []
+        for _badge in self.raids:
+            self.select_badges[self.raidLabel[_badge]] = True
+            self.badge_submenu.append(
+                MenuItem(self.raidLabel[_badge], self.toggleBadge, checked=lambda item: self.select_badges[str(item)])
+            )
+        # サブメニューに源世庫パニガルム追加
+        self.genseiko = '源世庫パニガルム'
+        self.select_badges[self.genseiko] = True
+        self.badge_submenu.append(
+            MenuItem(self.genseiko, self.toggleBadge, checked=lambda item: self.select_badges[str(item)])
+        )
         self.badges = Badges()
         self.badges.start()
 
@@ -172,6 +193,42 @@ class taskTray:
         self.show_badges = not self.show_badges
         self.badges.set_visible(self.show_badges)
 
+    def toggleBadge(self, _, item):
+        self.select_badges[str(item)] = not self.select_badges[str(item)]
+        self.updateBadges()
+
+    def updateBadges(self):
+        # バッジの更新
+        images = []
+        # バトルコンテンツを追加
+        for _badge in self.raids:
+            if self.select_badges[self.raidLabel[_badge]]:
+                badge = (self.xnames[_badge] if _badge in self.xnames else _badge) + ('_open' if self.raids[_badge] else '_close')
+                images.append(self.badge_cache[badge])
+
+        # 源世庫パニガルム
+        def dimm(image):
+            return ImageEnhance.Brightness(image).enhance(0.6).convert('L')
+
+        if self.select_badges[self.genseiko]:
+            _, key = self.panigarm
+            lst = list(panigarms)
+            ic0 = lst.index(key)                    # now
+            ic1 = (ic0 + 1) % len(panigarms)        # next
+            ic2 = (ic1 + 1) % len(panigarms)        # next next
+            images.append([                         # list
+                self.badge_cache[lst[ic0]],
+                dimm(self.badge_cache[lst[ic1]]),
+                dimm(self.badge_cache[lst[ic2]]),
+            ])
+
+        # 現在の襲撃兵団を追加
+        if self.icon_url:
+            target = self.getTarget(self.icon_url)
+            images.append(self.badge_cache[target])
+
+        self.badges.update(images)
+
     def toggleTitle(self, _, __):
         self.badges.toggle_title()
 
@@ -181,6 +238,7 @@ class taskTray:
             MenuItem('Open', self.doOpen, default=True, visible=False),
 
             MenuItem('Show Badges', self.toggleBadges, checked=lambda _: self.show_badges),
+            MenuItem('Select Badges', Menu(*self.badge_submenu)),
             MenuItem('Toggle Badges Title Bar', self.toggleTitle),
             Menu.SEPARATOR,
 
@@ -466,41 +524,7 @@ class taskTray:
             if target in NOTIFICATION_TARGET:
                 Dracky(f'{now} {titles[target]}')
 
-        # badge debug
-        # print('>> badges')
-        # for target in sorted(self.badge_cache):
-        #     print(target, self.badge_cache[target])
-        # print('<< badges')
-
-        # badge debug
-        # バッジの更新
-        images = []
-        # バトルコンテンツを追加
-        for _badge in self.raids:
-            badge = (self.xnames[_badge] if _badge in self.xnames else _badge) + ('_open' if self.raids[_badge] else '_close')
-            images.append(self.badge_cache[badge])
-
-        # 源世庫パニガルム
-        def dimm(image):
-            return ImageEnhance.Brightness(image).enhance(0.6).convert('L')
-
-        _, key = self.panigarm
-        lst = list(panigarms)
-        ic0 = lst.index(key)                    # now
-        ic1 = (ic0 + 1) % len(panigarms)        # next
-        ic2 = (ic1 + 1) % len(panigarms)        # next next
-        images.append([                         # list
-            self.badge_cache[lst[ic0]],
-            dimm(self.badge_cache[lst[ic1]]),
-            dimm(self.badge_cache[lst[ic2]]),
-        ])
-
-        # 現在の襲撃兵団を追加
-        if self.icon_url:
-            target = self.getTarget(self.icon_url)
-            images.append(self.badge_cache[target])
-
-        self.badges.update(images)
+        self.updateBadges()
 
     def checkMetal(self):
         """
