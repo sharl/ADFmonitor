@@ -82,7 +82,7 @@ class taskTray:
         self.metal_cache = []
         self.icon_cache = {}            # { "num": Image }
         self.badge_cache = {}
-        self.enableMetal = True
+        self.enableMetal = False
         self.nowMetal = False
         self.raids = self.initRaids()   # {'tengoku': '', 'inferno': '', 'pani': '', 'ikai': ''}
         self.xclass = {
@@ -106,13 +106,13 @@ class taskTray:
         # サブメニュー登録
         self.badge_submenu = []
         for _badge in self.raids:
-            self.select_badges[self.raidLabel[_badge]] = True
+            self.select_badges[self.raidLabel[_badge]] = False
             self.badge_submenu.append(
                 MenuItem(self.raidLabel[_badge], self.toggleBadge, checked=lambda item: self.select_badges[str(item)])
             )
         # サブメニューに源世庫パニガルム追加
         self.genseiko = '源世庫パニガルム'
-        self.select_badges[self.genseiko] = True
+        self.select_badges[self.genseiko] = False
         self.badge_submenu.append(
             MenuItem(self.genseiko, self.toggleBadge, checked=lambda item: self.select_badges[str(item)])
         )
