@@ -25,6 +25,8 @@ TITLE = 'Astoltia Defense Force'
 tokoyami_url = 'https://hiroba.dqx.jp/sc/tokoyami/#raid-container'
 tengoku_url = 'https://hiroba.dqx.jp/sc/game/tengoku'
 MAX_MENUS = 8
+# 翌日の先頭の準備
+NEXT_DAY_MARK = 'NEXT_MARK'
 # 新兵団がきたら手動更新
 titles = {
     "2": "闇朱の獣牙兵団",
@@ -198,6 +200,9 @@ class taskTray:
         self.updateBadges()
 
     def updateBadges(self):
+        def dimm(image):
+            return ImageEnhance.Brightness(image).enhance(0.5)
+
         # バッジの更新
         images = []
         # バトルコンテンツを追加
@@ -207,9 +212,6 @@ class taskTray:
                 images.append(self.badge_cache[badge])
 
         # 源世庫パニガルム
-        def dimm(image):
-            return ImageEnhance.Brightness(image).enhance(0.6).convert('L')
-
         if self.select_badges[self.genseiko]:
             _, key = self.panigarm
             lst = list(panigarms)
@@ -222,10 +224,23 @@ class taskTray:
                 dimm(self.badge_cache[lst[ic2]]),
             ])
 
+        adfs = []
         # 現在の襲撃兵団を追加
         if self.icon_url:
             target = self.getTarget(self.icon_url)
-            images.append(self.badge_cache[target])
+            adfs.append(self.badge_cache[target])
+        # 次の襲撃兵団を追加
+        now = self.getNow('%H')
+        if now == '05':
+            nxt = NEXT_DAY_MARK
+        else:
+            nxt = f'{(int(now) + 1) % 24:02}:00'
+        nxt_img_url = self.page_cache[nxt]
+        nxt_target = self.getTarget(nxt_img_url)
+        nxt_img = self.badge_cache[nxt_target]
+        adfs.append(dimm(nxt_img))
+
+        images.append(adfs)
 
         self.badges.update(images)
 
@@ -275,6 +290,10 @@ class taskTray:
             idx += 1
             if idx >= MAX_MENUS:
                 break
+        if idx < MAX_MENUS:
+            # next day's first schedule
+            target = self.getTarget(self.page_cache[NEXT_DAY_MARK])
+            item.append(MenuItem(f'06:00 {titles[target]}', lambda _: False, enabled=target in NOTIFICATION_TARGET))
         item.append(Menu.SEPARATOR)
 
         # 天獄・インフェルノ・昏冥庫・異界の創造主
@@ -372,6 +391,10 @@ class taskTray:
                     # th のときは td がないのでスキップ
                     if len(tds) == 0:
                         continue
+
+                    if NEXT_DAY_MARK not in self.page_cache:
+                        nxt_url = tds[2].contents[1].get('src')
+                        self.page_cache[NEXT_DAY_MARK] = nxt_url
 
                     hh, _ = tds[0].contents[0].strip().split('\xa0')[0].split(':')
                     _time = f'{int(hh):02}:00'
