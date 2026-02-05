@@ -386,6 +386,9 @@ class taskTray:
                     raise Exception('date not match')
                 print('<<<')
 
+                # 翌日のキャッシュをクリア
+                if NEXT_DAY_MARK in self.page_cache:
+                    del self.page_cache[NEXT_DAY_MARK]
                 for tr in trs:
                     tds = tr.find_all('td')
                     # th のときは td がないのでスキップ
