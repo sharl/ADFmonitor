@@ -282,7 +282,7 @@ class taskTray:
             # 現在以前はスキップ
             if t == now:
                 matched = True
-            if not matched:
+            if not matched or t == NEXT_DAY_MARK:
                 continue
 
             target = self.getTarget(self.page_cache[t])
