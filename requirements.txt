@@ -9,3 +9,4 @@ soupsieve
 tenacity
 urllib3
 win11toast
+pywin32

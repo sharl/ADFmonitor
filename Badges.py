@@ -2,6 +2,7 @@
 import threading
 import tkinter as tk
 from PIL import ImageTk
+import win32gui
 
 from utils import resource_path
 
@@ -18,6 +19,8 @@ class Badges(threading.Thread):
         self.offset_y = 0
         self.orientation = 'horizontal'
         self.current_images = []
+        self.taskbar_height = 48 - 8
+        self.is_fit_mode = False
 
     def run(self):
         self.root = tk.Tk()
@@ -37,6 +40,8 @@ class Badges(threading.Thread):
         # マウスイベント
         self.root.bind('<Button-1>', self.start_drag)
         self.root.bind('<B1-Motion>', self.drag_window)
+        # キーボードイベント
+        self.root.bind('f', lambda _: self.toggle_fit())
 
         # アイコン設定
         self.root.iconbitmap(resource_path('Assets/sample.ico'))
@@ -72,6 +77,11 @@ class Badges(threading.Thread):
         # 指定があれば更新、なければ現在の状態を維持
         if orientation:
             self.orientation = orientation
+
+        # 現在のタスクバーの高さを取得
+        hwnd = win32gui.FindWindow('Shell_TrayWnd', None)
+        rect = win32gui.GetWindowRect(hwnd)
+        self.taskbar_height = rect[3] - rect[1] - 8
 
         def _do_update():
             for widget in self.container.winfo_children():
@@ -111,7 +121,10 @@ class Badges(threading.Thread):
 
     def _create_image_label(self, parent, img_obj, side, expand=False):
         """画像を生成してイベントをバインドする共通処理"""
-        tk_img = ImageTk.PhotoImage(img_obj)
+        w, h = nw, nh = img_obj.size
+        if self.is_fit_mode:
+            nw, nh = int(w * (self.taskbar_height / h)), self.taskbar_height
+        tk_img = ImageTk.PhotoImage(img_obj.resize((nw, nh)))
         self.photo_refs.append(tk_img)
 
         label = tk.Label(parent, image=tk_img, bg=self.trans_color)
@@ -217,3 +230,7 @@ class Badges(threading.Thread):
 
             # 5. 制限された座標を適用
             self.root.geometry(f'+{new_x}+{new_y}')
+
+    def toggle_fit(self):
+        self.is_fit_mode = not self.is_fit_mode
+        self.update(self.current_images, orientation=self.orientation)
