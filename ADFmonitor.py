@@ -76,6 +76,16 @@ def Dracky(body):
     ws.PlaySound(resource_path('Assets/nc308516m.wav'), ws.SND_FILENAME)
 
 
+def getVersion():
+    v = 'test'
+    try:
+        with open(resource_path('Assets/version.txt')) as fd:
+            v = fd.read().strip().removeprefix('v')
+    except Exception:
+        pass
+    return f'{TITLE} {v}'
+
+
 class taskTray:
     def __init__(self):
         self.running = False
@@ -319,7 +329,7 @@ class taskTray:
         item.append(MenuItem(f'{nnspan} {panigarms[lst[nnxt]]}', lambda _: False, checked=lambda _: False))
 
         item.append(Menu.SEPARATOR)
-        item.append(MenuItem('Exit', self.stopApp))
+        item.append(MenuItem(f'Exit {getVersion()}', self.stopApp))
         return Menu(*item)
 
     def makeIconCache(self):
