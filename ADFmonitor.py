@@ -338,9 +338,10 @@ class taskTray:
                 image = Image.open(io.BytesIO(r.content))
                 target = self.getTarget(icon_url)
                 # store make badge excludes metal rookies
-                if target != '1' and target not in self.badge_cache:
-                    self.badge_cache[target] = image
                 w, h = image.size
+                if target != '1' and target not in self.badge_cache:
+                    # cut side 6 dot
+                    self.badge_cache[target] = image.crop((6, 0, w - 6, h))
                 # crop center
                 icon_image = image.crop(((w - h) // 2, 0, (w + h) // 2, h)).resize((16, 16))
                 # add gold frame
