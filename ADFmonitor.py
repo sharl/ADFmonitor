@@ -430,7 +430,7 @@ class taskTray:
                         self.metal_cache.append(_time)
 
                 # panigarm
-                panigarm = soup.find(class_='tokoyami-panigarm')
+                panigarm = soup.find_all(class_='tokoyami-panigarm')[1]
                 icon_url = panigarm.find('img').get('src')
                 key = self.getTarget(icon_url)
                 start = re.sub(r'（.）', '', panigarm.find_all('th')[1].text.strip())
