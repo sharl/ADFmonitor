@@ -503,10 +503,21 @@ class taskTray:
 
             urls = [img['src'] for img in soup.select('div.right-menu__battle a img')]
             for url in urls:
+                print(url)
                 target = self.getTarget(url)
+                print(target)
                 # _open, _close に正規化
                 if '_' not in target and '_close' not in target:
                     target += '_close'
+                elif 'fever' in target:
+                    # support fever temporary
+                    _target = target.split('_')[0]
+                    if '_open' in target:
+                        # fever open
+                        target = _target + '_open'
+                    else:
+                        # fever close
+                        target = _target + '_close'
                 if target not in self.badge_cache:
                     self.badge_cache[target] = _makeBadgeImage(url)
             # badge debug end
