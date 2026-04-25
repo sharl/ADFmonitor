@@ -219,6 +219,10 @@ class taskTray:
         for _badge in self.raids:
             if self.select_badges[self.raidLabel[_badge]]:
                 badge = (self.xnames[_badge] if _badge in self.xnames else _badge) + ('_open' if self.raids[_badge] else '_close')
+                if badge not in self.badge_cache:
+                    t = badge.split('_')
+                    if len(t) == 2:
+                        badge = f'{t[0]}_fever_{t[1]}'
                 images.append(self.badge_cache[badge])
 
         # 源世庫パニガルム
@@ -472,7 +476,7 @@ class taskTray:
             self.raids = self.initRaids()
             soup = BeautifulSoup(r.content, 'html.parser')
 
-            # badge debug start
+            # バトルコンテンツ情報
 
             # これやめてテキストから画像にするかも
             # 天獄
@@ -484,11 +488,14 @@ class taskTray:
             # closed の場合
             # https://cache.hiroba.dqx.jp/dq_resource/img/common/right/navi/battle/tengoku.jpg?29439811
             # https://cache.hiroba.dqx.jp/dq_resource/img/common/right/navi/battle/inferno.jpg?29439811
+            # https://cache.hiroba.dqx.jp/dq_resource/img/common/right/navi/battle/inferno_fever_ycpxioJe8eXM7jYS5uyZ ?
+            # https://cache.hiroba.dqx.jp/dq_resource/img/common/right/navi/battle/inferno_fever_close_ycpxioJe8eXM7jYS5uyZ ?
             # https://cache.hiroba.dqx.jp/dq_resource/img/common/right/navi/battle/konmeiko.jpg?29439811
             # https://cache.hiroba.dqx.jp/dq_resource/img/common/right/navi/battle/ikai_close.png?29439811
             # is-open の場合
             # https://cache.hiroba.dqx.jp/dq_resource/img/common/right/navi/battle/tengoku_open.jpg?29439811
             # https://cache.hiroba.dqx.jp/dq_resource/img/common/right/navi/battle/inferno_open.jpg?29439811
+            # https://cache.hiroba.dqx.jp/dq_resource/img/common/right/navi/battle/inferno_fever_open_ycpxioJe8eXM7jYS5uyZ
             # https://cache.hiroba.dqx.jp/dq_resource/img/common/right/navi/battle/konmeiko_open.jpg?29439811
             # https://cache.hiroba.dqx.jp/dq_resource/img/common/right/navi/battle/ikai_open.png?29439811
             def _makeBadgeImage(badge_url):
@@ -501,25 +508,33 @@ class taskTray:
                     badge_image = image.crop((0 + x_offset, 0 + y_offset, w - x_offset, (h // 2) - y_offset))
                     return badge_image
 
+            # badge debug start
+            print('------ store: ------')
             urls = [img['src'] for img in soup.select('div.right-menu__battle a img')]
             for url in urls:
-                print(url)
                 target = self.getTarget(url)
-                print(target)
                 # _open, _close に正規化
-                if '_' not in target and '_close' not in target:
+                # print(f'0 {target=}')
+
+                # どっちも取る
+                for word in ['_open', '_close']:
+                    if word in target:
+                        i = target.index(word)
+                        target = target[:i] + word
+                # _open はすべてについていると仮定したコード
+                if not target.endswith(('_open', '_close')):
                     target += '_close'
-                elif 'fever' in target:
-                    # support fever temporary
-                    _target = target.split('_')[0]
-                    if '_open' in target:
-                        # fever open
-                        target = _target + '_open'
-                    else:
-                        # fever close
-                        target = _target + '_close'
+
+                # print(f'1 {target=}')
                 if target not in self.badge_cache:
+                    print(f'store {target}')
                     self.badge_cache[target] = _makeBadgeImage(url)
+
+            print('------ keys: -------')
+            for target in self.badge_cache:
+                if '_' in target:
+                    print(target)
+            print('--------------------')
             # badge debug end
 
             # 天獄
