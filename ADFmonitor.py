@@ -108,6 +108,7 @@ class taskTray:
 
         # バッジ周り初期化
         self.show_badges = False
+        self.auto_show_hide = False
         self.raidLabel = {
             'tengoku': '邪神の宮殿 天獄',
             'inferno': 'フェスタ・インフェルノ',
@@ -116,7 +117,10 @@ class taskTray:
         }
         self.select_badges = {}
         # サブメニュー登録
-        self.badge_submenu = []
+        self.badge_submenu = [
+            MenuItem('Auto Show / Hide', self.toggleAutoShowHide, checked=lambda _: self.auto_show_hide),
+            Menu.SEPARATOR,
+        ]
         for _badge in self.raids:
             self.select_badges[self.raidLabel[_badge]] = False
             self.badge_submenu.append(
@@ -209,6 +213,10 @@ class taskTray:
         self.select_badges[str(item)] = not self.select_badges[str(item)]
         self.updateBadges()
 
+    def toggleAutoShowHide(self, _, __):
+        self.auto_show_hide = not self.auto_show_hide
+        self.updateBadges()
+
     def updateBadges(self):
         def dimm(image):
             return ImageEnhance.Brightness(image).enhance(0.5)
@@ -223,7 +231,8 @@ class taskTray:
                     t = badge.split('_')
                     if len(t) == 2:
                         badge = f'{t[0]}_fever_{t[1]}'
-                images.append(self.badge_cache[badge])
+                if (not self.auto_show_hide) or (self.auto_show_hide and '_open' in badge):
+                    images.append(self.badge_cache[badge])
 
         # 源世庫パニガルム
         if self.select_badges[self.genseiko]:
