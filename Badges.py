@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import threading
 import tkinter as tk
+
 from PIL import ImageTk
 import win32gui
 
@@ -16,6 +17,8 @@ class Badges(threading.Thread):
         self.container = None
         self.photo_refs = []
         self._ready = False
+        # 起動時の読み込み中フラグ
+        self.is_loading = True
         self.trans_color = '#abcdef'
         self.offset_x = 0
         self.offset_y = 0
@@ -23,10 +26,15 @@ class Badges(threading.Thread):
         self.current_images = []
         self.taskbar_height = 48 - HEIGHT_OFFSET
         self.is_fit_mode = False
+        self.hide_title_bar = True
+
+        # 変更を通知するためのコールバック用
+        self.on_changed = None
 
     def run(self):
         self.root = tk.Tk()
         self.root.title('Badge')
+        self.root.overrideredirect(self.hide_title_bar)
 
         # 背景と透過
         self.root.config(bg=self.trans_color)
@@ -42,6 +50,7 @@ class Badges(threading.Thread):
         # マウスイベント
         self.root.bind('<Button-1>', self.start_drag)
         self.root.bind('<B1-Motion>', self.drag_window)
+        self.root.bind('<ButtonRelease-1>', lambda e: self.on_changed() if self.on_changed else None)
         # キーボードイベント
         self.root.bind('f', lambda _: self.toggle_fit())
 
@@ -59,14 +68,21 @@ class Badges(threading.Thread):
         self.root.mainloop()
 
     def toggle_title(self):
-        is_hidden = self.root.overrideredirect()
-        self.root.overrideredirect(not is_hidden)
+        self.hide_title_bar = not self.hide_title_bar
+        # Tkinterの画面に反映
+        self.root.overrideredirect(self.hide_title_bar)
         self.root.update()
         self.root.after(0, self._clamp_position)
+        # コールバック呼び出し
+        if self.on_changed:
+            self.on_changed()
 
     def toggle_orientation(self):
         orientation = 'vertical' if self.orientation == 'horizontal' else 'horizontal'
         self.update(self.current_images, orientation=orientation)
+        # コールバック呼び出し
+        if self.on_changed:
+            self.on_changed()
 
     def update(self, pil_images, orientation=None):
         """表示状態にかかわらず、containerの中身を最新にする"""
@@ -236,3 +252,6 @@ class Badges(threading.Thread):
     def toggle_fit(self):
         self.is_fit_mode = not self.is_fit_mode
         self.update(self.current_images, orientation=self.orientation)
+        # コールバック呼び出し
+        if self.on_changed:
+            self.on_changed()

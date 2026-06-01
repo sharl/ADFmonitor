@@ -1,25 +1,27 @@
 # -*- coding: utf-8 -*-
-import sys
-import io
-import time
-import threading
+from dataclasses import asdict, dataclass
 from datetime import datetime as dt, timedelta as td, timezone as tz
-import webbrowser
-import re
 import ctypes
+import io
+import re
+import sys
+import threading
+import time
+import webbrowser
 import winsound as ws
 
-import schedule
-from pystray import Icon, Menu, MenuItem
 from PIL import Image, ImageDraw, ImageEnhance
-import requests
 from bs4 import BeautifulSoup
-from win11toast import notify
+from pystray import Icon, Menu, MenuItem
 from tenacity import retry, stop_after_attempt, wait_fixed
+from win11toast import notify
 import darkdetect as dd
+import requests
+import schedule
 
-from utils import resource_path
 from Badges import Badges
+from config import Config
+from utils import resource_path
 
 TITLE = 'Astoltia Defense Force'
 tokoyami_url = 'https://hiroba.dqx.jp/sc/tokoyami/#raid-container'
@@ -86,9 +88,29 @@ def getVersion():
     return f'{TITLE} {v}'
 
 
+# 保存する設定の型定義
+@dataclass
+class Setting:
+    # badgeの表示状態
+    show_badges: bool
+    # badgeの auto show hide
+    auto_show_hide: bool
+    # badgeの select状態
+    select_badges: dict[str, bool]
+    # badgeの位置
+    geometry: str
+    # badgeのorientation
+    orientation: str
+    # badgeの fit mode
+    is_fit_mode: bool
+    # badgeの title bar 表示
+    hide_title_bar: bool
+
+
 class taskTray:
     def __init__(self):
         self.running = False
+        self.config = Config(TITLE)
         self.icon_url = str()
         self.page_cache = {}
         self.metal_cache = []
@@ -108,6 +130,7 @@ class taskTray:
 
         # バッジ周り初期化
         self.show_badges = False
+        self.geometry = ''
         self.auto_show_hide = False
         self.raidLabel = {
             'tengoku': '邪神の宮殿 天獄',
@@ -133,7 +156,20 @@ class taskTray:
             MenuItem(self.genseiko, self.toggleBadge, checked=lambda item: self.select_badges[str(item)])
         )
         self.badges = Badges()
+        # コールバックを定義
+        self.badges.on_changed = self.save_config
         self.badges.start()
+        # 待機
+        while not self.badges._ready:
+            time.sleep(0.1)
+        # 設定読み込み
+        self.load_config()
+
+        # 読み込み中フラグ解除
+        self.badges.is_loading = False
+        if hasattr(self, 'geometry'):
+            self.badges.root.geometry(self.geometry)
+        self.badges.set_visible(self.show_badges)
 
         self.updatePage(retry=False)
         if not self.page_cache:
@@ -144,6 +180,34 @@ class taskTray:
         self.app = Icon(name='PYTHON.win32.AstoltiaDefenseForce', title=TITLE, menu=menu)
         self.checkMetal()
         self.doCheck(wait=False)
+
+    def load_config(self):
+        setting = Setting(**self.config.load())
+        self.show_badges = setting.show_badges
+        self.auto_show_hide = setting.auto_show_hide
+        self.select_badges = setting.select_badges
+        # 補正のために自分に保存(Badgesでは補正したときに反映される)
+        self.geometry = setting.geometry
+        self.badges.orientation = setting.orientation
+        self.badges.is_fit_mode = setting.is_fit_mode
+        self.badges.hide_title_bar = setting.hide_title_bar
+
+    def save_config(self):
+        x = self.badges.root.winfo_x()
+        y = self.badges.root.winfo_y()
+        geometry = f'+{x}+{y}'
+
+        setting = Setting(
+            show_badges=self.show_badges,
+            auto_show_hide=self.auto_show_hide,
+            select_badges=self.select_badges,
+            geometry=geometry,
+            orientation=self.badges.orientation,
+            is_fit_mode=self.badges.is_fit_mode,
+            hide_title_bar=self.badges.hide_title_bar,
+        )
+        self.config.save(asdict(setting))
+        print('saved')
 
     def initRaids(self):
         return {
@@ -208,14 +272,17 @@ class taskTray:
     def toggleBadges(self, _, __):
         self.show_badges = not self.show_badges
         self.badges.set_visible(self.show_badges)
+        self.save_config()
 
     def toggleBadge(self, _, item):
         self.select_badges[str(item)] = not self.select_badges[str(item)]
         self.updateBadges()
+        self.save_config()
 
     def toggleAutoShowHide(self, _, __):
         self.auto_show_hide = not self.auto_show_hide
         self.updateBadges()
+        self.save_config()
 
     def updateBadges(self):
         def dimm(image):
