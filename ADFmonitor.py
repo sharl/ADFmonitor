@@ -207,7 +207,6 @@ class taskTray:
             hide_title_bar=self.badges.hide_title_bar,
         )
         self.config.save(asdict(setting))
-        print('saved')
 
     def initRaids(self):
         return {
@@ -618,7 +617,7 @@ class taskTray:
             if tengoku:
                 _span = tengoku.find(class_='tengoku__period').text.strip().split('\n')[-1].strip()
                 yyyy, mm, dd, HH, MM = re.findall(NUMS_RE, _span)
-                span = f'{yyyy}/{int(mm):02d}/{dd} {HH}:{MM} まで'
+                span = f'{yyyy}/{int(mm):02d}/{int(dd):02d} {HH}:{MM} まで'
                 target = soup.find(class_='tengoku-x-table_title').text.strip()
                 print(self.getNow(), span, target)
                 self.raids['tengoku'] = f'{span} {target}'
