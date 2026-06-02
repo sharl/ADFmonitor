@@ -14,7 +14,7 @@ from PIL import Image, ImageDraw, ImageEnhance
 from bs4 import BeautifulSoup
 from pystray import Icon, Menu, MenuItem
 from tenacity import retry, stop_after_attempt, wait_fixed
-from win11toast import notify
+from win11toast import notify, clear_toast
 import darkdetect as dd
 import requests
 import schedule
@@ -72,9 +72,32 @@ PreferredAppMode = {
 # https://github.com/moses-palmer/pystray/issues/130
 ctypes.windll['uxtheme.dll'][135](PreferredAppMode[dd.theme()])
 
+ADF_XML = """
+<toast activationType="protocol" launch="http:" scenario="{scenario}">
+    <visual>
+       <binding template='ToastGeneric'>
+           <text placement="attribution">アストルティア防衛軍</text>
+       </binding>
+    </visual>
+</toast>
+"""
 
-def Dracky(body):
-    notify(body, app_id=TITLE, audio={'silent': 'true'})
+
+def Dracky(title):
+    try:
+        # ToastNotificationManager.history がない場合があるためガード
+        clear_toast(app_id=TITLE, tag=TITLE, group=TITLE)
+    except TypeError:
+        pass
+    notify(
+        title,
+        icon={
+            'src': resource_path('Assets/sample.ico'),
+            'placement': 'appLogoOverride',
+        },
+        xml=ADF_XML,
+        app_id=TITLE, tag=TITLE, group=TITLE, audio={'silent': 'true'},
+    )
     ws.PlaySound(resource_path('Assets/nc308516m.wav'), ws.SND_FILENAME)
 
 
@@ -173,7 +196,7 @@ class taskTray:
 
         self.updatePage(retry=False)
         if not self.page_cache:
-            notify(body='メンテナンス中', app_id=TITLE, duration='long')
+            notify(body='メンテナンス中', app_id=TITLE, tag=TITLE, group=TITLE, duration='long')
             sys.exit(1)
 
         menu = self.updateMenu()
