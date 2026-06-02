@@ -1,12 +1,14 @@
 beautifulsoup4
 certifi
+charset-normalizer
 darkdetect
+idna
 pillow
 pystray
+pywin32
 requests
 schedule
 soupsieve
 tenacity
 urllib3
 win11toast
-pywin32
