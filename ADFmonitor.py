@@ -205,15 +205,18 @@ class taskTray:
         self.doCheck(wait=False)
 
     def load_config(self):
-        setting = Setting(**self.config.load())
-        self.show_badges = setting.show_badges
-        self.auto_show_hide = setting.auto_show_hide
-        self.select_badges = setting.select_badges
-        # 補正のために自分に保存(Badgesでは補正したときに反映される)
-        self.geometry = setting.geometry
-        self.badges.orientation = setting.orientation
-        self.badges.is_fit_mode = setting.is_fit_mode
-        self.badges.hide_title_bar = setting.hide_title_bar
+        try:
+            setting = Setting(**self.config.load())
+            self.show_badges = setting.show_badges
+            self.auto_show_hide = setting.auto_show_hide
+            self.select_badges = setting.select_badges
+            # 補正のために自分に保存(Badgesでは補正したときに反映される)
+            self.geometry = setting.geometry
+            self.badges.orientation = setting.orientation
+            self.badges.is_fit_mode = setting.is_fit_mode
+            self.badges.hide_title_bar = setting.hide_title_bar
+        except Exception:
+            pass
 
     def save_config(self):
         x = self.badges.root.winfo_x()
