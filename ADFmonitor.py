@@ -2,6 +2,7 @@
 from dataclasses import asdict, dataclass
 from datetime import datetime as dt, timedelta as td, timezone as tz
 import ctypes
+import hashlib
 import io
 import re
 import sys
@@ -72,31 +73,57 @@ PreferredAppMode = {
 # https://github.com/moses-palmer/pystray/issues/130
 ctypes.windll['uxtheme.dll'][135](PreferredAppMode[dd.theme()])
 
-ADF_XML = """
+XML_TEMPLATE = """
 <toast activationType="protocol" launch="http:" scenario="{scenario}">
     <visual>
        <binding template='ToastGeneric'>
-           <text placement="attribution">アストルティア防衛軍</text>
+           <text placement="attribution">%attribution%</text>
        </binding>
     </visual>
 </toast>
 """
 
 
-def Dracky(title):
+def Dracky(title, label=None):
+    """
+    label: イベントの種類
+
+    邪神の宮殿・天獄
+    フェスタ・インフェルノ
+    昏冥庫パニガルム
+    異界の創造主
+    源世庫パニガルム
+    アストルティア防衛軍
+    """
+    # Notification Specification
+    # https://learn.microsoft.com/en-us/uwp/api/windows.ui.notifications.toastnotification.tag?view=winrt-26100
+    # group max length: 64
+    # tag max length: 64
+    # 25 + 1 + 32 = 58 < 64
+    def _make_hash(name: str) -> str:
+        return name[:25] + '_' + hashlib.md5(name.encode('utf-8')).hexdigest()
+
+    # デフォルトイベントは防衛軍
+    event = label if label else 'アストルティア防衛軍'
+
     try:
         # ToastNotificationManager.history がない場合があるためガード
-        clear_toast(app_id=TITLE, tag=TITLE, group=TITLE)
+        clear_toast(app_id=TITLE, group=TITLE, tag=event)
     except TypeError:
         pass
+
+    xml = XML_TEMPLATE.replace('%attribution%', event)
     notify(
         title,
         icon={
             'src': resource_path('Assets/sample.ico'),
             'placement': 'appLogoOverride',
         },
-        xml=ADF_XML,
-        app_id=TITLE, tag=TITLE, group=TITLE, audio={'silent': 'true'},
+        xml=xml,
+        app_id=TITLE,
+        group=TITLE,
+        tag=event,
+        audio={'silent': 'true'},
     )
     ws.PlaySound(resource_path('Assets/nc308516m.wav'), ws.SND_FILENAME)
 
@@ -118,7 +145,7 @@ class Setting:
     show_badges: bool
     # badgeの auto show hide
     auto_show_hide: bool
-    # badgeの select状態
+    # badgeの select状態 / 通知するイベントも兼ねる
     select_badges: dict[str, bool]
     # badgeの位置
     geometry: str
@@ -161,10 +188,11 @@ class taskTray:
             'pani': '昏冥庫パニガルム',
             'ikai': '異界の創造主',
         }
+        self.last_events = self.raidLabel.copy()
         self.select_badges = {}
         # サブメニュー登録
         self.badge_submenu = [
-            MenuItem('Auto Show / Hide', self.toggleAutoShowHide, checked=lambda _: self.auto_show_hide),
+            MenuItem('Auto Show / Hide Badges', self.toggleAutoShowHide, checked=lambda _: self.auto_show_hide),
             Menu.SEPARATOR,
         ]
         for _badge in self.raids:
@@ -368,7 +396,7 @@ class taskTray:
             MenuItem('Open', self.doOpen, default=True, visible=False),
 
             MenuItem('Show Badges', self.toggleBadges, checked=lambda _: self.show_badges),
-            MenuItem('Select Badges', Menu(*self.badge_submenu)),
+            MenuItem('Select Events', Menu(*self.badge_submenu)),
             MenuItem('Toggle Badges Title Bar', self.toggleTitle),
             Menu.SEPARATOR,
 
@@ -645,8 +673,15 @@ class taskTray:
                 yyyy, mm, dd, HH, MM = re.findall(NUMS_RE, _span)
                 span = f'{yyyy}/{int(mm):02d}/{int(dd):02d} {HH}:{MM} まで'
                 target = soup.find(class_='tengoku-x-table_title').text.strip()
-                print(self.getNow(), span, target)
-                self.raids['tengoku'] = f'{span} {target}'
+
+                self.raids['tengoku'] = event = f'{span} {target}'
+                print(self.getNow(), event)
+
+                key = 'tengoku'
+                label = self.raidLabel[key]
+                if self.select_badges[label] and event != self.last_events[key]:
+                    Dracky(event, label=label)
+                    self.last_events[key] = event
 
             # インフェルノ・昏冥庫・異界の創造主 (一部分共通化)
             for key in list(self.raids)[1:]:
@@ -661,8 +696,13 @@ class taskTray:
                         target = '異界の創造主'
                     else:
                         target = target.text.strip()
-                    print(self.getNow(), span, target)
-                    self.raids[key] = f'{span} {target}'
+                    self.raids[key] = event = f'{span} {target}'
+                    print(self.getNow(), event)
+
+                    label = self.raidLabel[key]
+                    if self.select_badges[label] and event != self.last_events[key]:
+                        Dracky(event, label=label)
+                        self.last_events[key] = event
 
             print(self.getNow(), tengoku_url, 'updated')
 
