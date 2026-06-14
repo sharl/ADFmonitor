@@ -461,6 +461,31 @@ class taskTray:
         item.append(MenuItem(f'{nspan} {panigarms[lst[nxt]]}', lambda _: False, checked=lambda _: False))
         item.append(MenuItem(f'{nnspan} {panigarms[lst[nnxt]]}', lambda _: False, checked=lambda _: False))
 
+        # 他の通知判定もここに持ってくればいいんじゃね
+
+        # 源世庫パニガルムは今のところ じげんりゅう 一択で通知(念のため配列に)
+        label = self.genseiko
+        event = panigarms[self.panigarm[1]]     # self.panigarm:  [start datetime, hashkey]
+        matched = event in ['じげんりゅう']
+        matched = True          # DEBUG: どの源世庫でもマッチ
+
+        # icon を源世庫のボスアイコンに? できるのかな?
+
+        if self.select_badges[label] and matched:
+            # for first time
+            if label not in self.last_events and matched:
+                # 初期状態では存在しないので条件が一致する場合は通知
+                self.last_events[label] = event
+                Dracky(event, label=label)
+                print(f'Dracky !! (first time) {event}')
+            elif event != self.last_events[label]:
+                # 前回のイベントと異なる場合は通知
+                Dracky(event, label=label)
+                print(f'Dracky !! {event}')
+
+        # 今回のイベントをセット
+        self.last_events[label] = event
+
         item.append(Menu.SEPARATOR)
         item.append(MenuItem(f'Exit {getVersion()}', self.stopApp))
         return Menu(*item)
@@ -682,6 +707,14 @@ class taskTray:
                 if self.select_badges[label] and event != self.last_events[key]:
                     Dracky(event, label=label)
                     self.last_events[key] = event
+
+            # DEBUG events test
+            key = 'tengoku'
+            event = '天獄テスト'
+            label = self.raidLabel[key]
+            if self.select_badges[label] and event != self.last_events[key]:
+                Dracky(event, label=label)
+                self.last_events[key] = event
 
             # インフェルノ・昏冥庫・異界の創造主 (一部分共通化)
             for key in list(self.raids)[1:]:
