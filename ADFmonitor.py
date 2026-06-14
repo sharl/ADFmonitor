@@ -4,6 +4,7 @@ from datetime import datetime as dt, timedelta as td, timezone as tz
 import ctypes
 import hashlib
 import io
+import os
 import re
 import sys
 import threading
@@ -84,8 +85,10 @@ XML_TEMPLATE = """
 """
 
 
-def Dracky(title, label=None):
+def Dracky(message, icon={}, label=None):
     """
+    message: text 空白に応じて title, body をセット
+    icon: アイコン画像
     label: イベントの種類
 
     邪神の宮殿・天獄
@@ -112,13 +115,40 @@ def Dracky(title, label=None):
     except TypeError:
         pass
 
+    # image spec: https://learn.microsoft.com/en-us/uwp/schemas/tiles/toastschema/element-image
+    # アプリの権限として信頼されてないと file:/// 以外は は取れない
+    if not icon:
+        icon = {
+            'src': resource_path('Assets/sample.ico'),
+            'placement': 'appLogoOverride',
+        }
+    else:
+        # icon = {
+        #     str: PIL.Image
+        # }
+        # キャッシュをローカルに保存して制限回避
+        name = list(icon)[0]
+        image = icon[name]
+        tmp_name = os.path.join(
+            os.environ.get('TEMP'),
+            'ADF_' + name
+        )
+        if not os.path.exists(tmp_name):
+            image.save(tmp_name, format='PNG')
+        icon = {
+            'src': tmp_name,
+            'placement': 'appLogoOverride',
+        }
+
+    lines = message.split(' ')
+    title = lines[-1]
+    body = ' '.join(lines[:-1])
+
     xml = XML_TEMPLATE.replace('%attribution%', event)
     notify(
         title,
-        icon={
-            'src': resource_path('Assets/sample.ico'),
-            'placement': 'appLogoOverride',
-        },
+        body=body,
+        icon=icon,
         xml=xml,
         app_id=TITLE,
         group=TITLE,
@@ -465,22 +495,26 @@ class taskTray:
 
         # 源世庫パニガルムは今のところ じげんりゅう 一択で通知(念のため配列に)
         label = self.genseiko
-        event = panigarms[self.panigarm[1]]     # self.panigarm:  [start datetime, hashkey]
+        # [start datetime, hashkey]
+        _, icon_key = self.panigarm
+        event = panigarms[icon_key]
         matched = event in ['じげんりゅう']
         matched = True          # DEBUG: どの源世庫でもマッチ
 
-        # icon を源世庫のボスアイコンに? できるのかな?
+        icon = {
+            icon_key: self.badge_cache[icon_key]
+        }
 
         if self.select_badges[label] and matched:
             # for first time
             if label not in self.last_events and matched:
                 # 初期状態では存在しないので条件が一致する場合は通知
                 self.last_events[label] = event
-                Dracky(event, label=label)
+                Dracky(event, icon=icon, label=label)
                 print(f'Dracky !! (first time) {event}')
             elif event != self.last_events[label]:
                 # 前回のイベントと異なる場合は通知
-                Dracky(event, label=label)
+                Dracky(event, icon=icon, label=label)
                 print(f'Dracky !! {event}')
 
         # 今回のイベントをセット
@@ -710,7 +744,7 @@ class taskTray:
 
             # DEBUG events test
             key = 'tengoku'
-            event = '天獄テスト'
+            event = '2026/06/11 05:59 まで 異形の獣たち'
             label = self.raidLabel[key]
             if self.select_badges[label] and event != self.last_events[key]:
                 Dracky(event, label=label)
