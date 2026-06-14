@@ -501,6 +501,7 @@ class taskTray:
         matched = event in ['じげんりゅう']
         matched = True          # DEBUG: どの源世庫でもマッチ
 
+        title = f'{espan} {event}'
         icon = {
             icon_key: self.badge_cache[icon_key]
         }
@@ -510,11 +511,11 @@ class taskTray:
             if label not in self.last_events and matched:
                 # 初期状態では存在しないので条件が一致する場合は通知
                 self.last_events[label] = event
-                Dracky(event, icon=icon, label=label)
+                Dracky(title, icon=icon, label=label)
                 print(f'Dracky !! (first time) {event}')
             elif event != self.last_events[label]:
                 # 前回のイベントと異なる場合は通知
-                Dracky(event, icon=icon, label=label)
+                Dracky(title, icon=icon, label=label)
                 print(f'Dracky !! {event}')
 
         # 今回のイベントをセット
