@@ -151,8 +151,8 @@ def Dracky(message, icon={}, label=None):
         icon=icon,
         xml=xml,
         app_id=TITLE,
-        group=TITLE,
-        tag=event,
+        group=_make_hash(TITLE),
+        tag=_make_hash(event),
         audio={'silent': 'true'},
     )
     ws.PlaySound(resource_path('Assets/nc308516m.wav'), ws.SND_FILENAME)
@@ -233,6 +233,7 @@ class taskTray:
         # サブメニューに源世庫パニガルム追加
         self.genseiko = '源世庫パニガルム'
         self.select_badges[self.genseiko] = False
+        self.last_events[self.genseiko] = False
         self.badge_submenu.append(
             MenuItem(self.genseiko, self.toggleBadge, checked=lambda item: self.select_badges[str(item)])
         )
@@ -491,38 +492,49 @@ class taskTray:
         item.append(MenuItem(f'{nspan} {panigarms[lst[nxt]]}', lambda _: False, checked=lambda _: False))
         item.append(MenuItem(f'{nnspan} {panigarms[lst[nnxt]]}', lambda _: False, checked=lambda _: False))
 
-        # 他の通知判定もここに持ってくればいいんじゃね
+        item.append(Menu.SEPARATOR)
+        item.append(MenuItem(f'Exit {getVersion()}', self.stopApp))
 
-        # 源世庫パニガルムは今のところ じげんりゅう 一択で通知(念のため配列に)
+        # イベント発生チェック ---------------------------------------
+        # 天獄・フェスタ・昏冥庫・異界
+        for key in self.raids:
+            event = self.raids[key]
+            label = self.raidLabel[key]
+            laste = self.last_events[key]
+
+            # DEBUG events test
+            # if key == 'tengoku':
+            #     event = '2026/06/11 05:59 まで 異形の獣たち'
+
+            # selected and changed event
+            if self.select_badges[label] and event != laste:
+                # print(f'>> {key=} {label=} {event=} {laste=}')
+                if event:
+                    Dracky(event, label=label)
+                    print(self.getNow(), event)
+                self.last_events[key] = event
+
+        # 源世庫パニガルム
+        # 今のところ じげんりゅう 一択で通知(念のため配列に)
         label = self.genseiko
         # [start datetime, hashkey]
         _, icon_key = self.panigarm
         event = panigarms[icon_key]
         matched = event in ['じげんりゅう']
-        matched = True          # DEBUG: どの源世庫でもマッチ
+        # matched = True          # DEBUG: どの源世庫でもマッチ
 
-        title = f'{espan} {event}'
-        icon = {
-            icon_key: self.badge_cache[icon_key]
-        }
-
-        if self.select_badges[label] and matched:
-            # for first time
-            if label not in self.last_events and matched:
-                # 初期状態では存在しないので条件が一致する場合は通知
-                self.last_events[label] = event
-                Dracky(title, icon=icon, label=label)
-                print(f'Dracky !! (first time) {event}')
-            elif event != self.last_events[label]:
-                # 前回のイベントと異なる場合は通知
-                Dracky(title, icon=icon, label=label)
-                print(f'Dracky !! {event}')
+        if self.select_badges[label] and matched and event != self.last_events[label]:
+            title = f'{espan} {event}'
+            icon = {
+                icon_key: self.badge_cache[icon_key]
+            }
+            Dracky(title, icon=icon, label=label)
+            print(self.getNow(), title)
 
         # 今回のイベントをセット
         self.last_events[label] = event
+        # ------------------------------------------------------------
 
-        item.append(Menu.SEPARATOR)
-        item.append(MenuItem(f'Exit {getVersion()}', self.stopApp))
         return Menu(*item)
 
     def makeIconCache(self):
@@ -733,23 +745,7 @@ class taskTray:
                 yyyy, mm, dd, HH, MM = re.findall(NUMS_RE, _span)
                 span = f'{yyyy}/{int(mm):02d}/{int(dd):02d} {HH}:{MM} まで'
                 target = soup.find(class_='tengoku-x-table_title').text.strip()
-
-                self.raids['tengoku'] = event = f'{span} {target}'
-                print(self.getNow(), event)
-
-                key = 'tengoku'
-                label = self.raidLabel[key]
-                if self.select_badges[label] and event != self.last_events[key]:
-                    Dracky(event, label=label)
-                    self.last_events[key] = event
-
-            # DEBUG events test
-            key = 'tengoku'
-            event = '2026/06/11 05:59 まで 異形の獣たち'
-            label = self.raidLabel[key]
-            if self.select_badges[label] and event != self.last_events[key]:
-                Dracky(event, label=label)
-                self.last_events[key] = event
+                self.raids['tengoku'] = f'{span} {target}'
 
             # インフェルノ・昏冥庫・異界の創造主 (一部分共通化)
             for key in list(self.raids)[1:]:
@@ -764,13 +760,7 @@ class taskTray:
                         target = '異界の創造主'
                     else:
                         target = target.text.strip()
-                    self.raids[key] = event = f'{span} {target}'
-                    print(self.getNow(), event)
-
-                    label = self.raidLabel[key]
-                    if self.select_badges[label] and event != self.last_events[key]:
-                        Dracky(event, label=label)
-                        self.last_events[key] = event
+                    self.raids[key] = f'{span} {target}'
 
             print(self.getNow(), tengoku_url, 'updated')
 
