@@ -807,9 +807,13 @@ class taskTray:
         self.app.update_menu()
         if self.enableMetal:
             label = '大行進予報'
+            icon_key = '1'
+            icon = {
+                icon_key: self.icon_cache[icon_key]
+            }
             for t in self.metal_cache:
                 if self.isMetal(t):
-                    Dracky(f'{t} メタルーキー軍団 大行進中', label=label)
+                    Dracky(f'{t} メタルーキー軍団大行進中', icon=icon, label=label)
                     self.nowMetal = True
                     return
             self.nowMetal = False
