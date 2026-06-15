@@ -584,13 +584,11 @@ class taskTray:
 
         return icons[0]
 
-    def updateIcon(self, update_menu=True):
+    def updateIcon(self):
         target = self.getTarget(self.icon_url)
         icon_adf = self.icon_cache[target]
         icon_metal = self.icon_cache['1']
         self.app.icon = self.getIcon([icon_adf, icon_metal])
-        if update_menu and self.enableMetal and self.nowMetal:
-            self.app.update_menu()
 
     @retry(stop=stop_after_attempt(5), wait=wait_fixed(1))
     def updatePage(self, retry=True):
@@ -785,7 +783,7 @@ class taskTray:
             self.icon_url = icon_url
 
             # set self.app.icon
-            self.updateIcon(update_menu=False)
+            self.updateIcon()
             target = self.getTarget(self.icon_url)
             self.app.title = titles[target]
             self.app.menu = self.updateMenu()
