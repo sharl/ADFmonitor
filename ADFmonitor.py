@@ -16,7 +16,8 @@ from PIL import Image, ImageDraw, ImageEnhance
 from bs4 import BeautifulSoup
 from pystray import Icon, Menu, MenuItem
 from tenacity import retry, stop_after_attempt, wait_fixed
-from win11toast import notify, clear_toast
+from win11toast import notify
+from winrt.windows.ui.notifications import ToastNotificationManager
 import darkdetect as dd
 import requests
 import schedule
@@ -109,11 +110,16 @@ def Dracky(message, icon={}, label=None):
     # デフォルトイベントは防衛軍
     event = label if label else 'アストルティア防衛軍'
 
-    try:
-        # ToastNotificationManager.history がない場合があるためガード
-        clear_toast(app_id=TITLE, group=TITLE, tag=event)
-    except TypeError:
-        pass
+    group = _make_hash(TITLE)
+    tag = _make_hash(event)
+
+    # clear history with tag, group, app_id
+    # avoid win11toast.clear_toast: in 0.36.3
+    ToastNotificationManager.history.remove_grouped_tag_with_id(tag, group, TITLE)
+
+    # delete notification only
+    if not message:
+        return
 
     # image spec: https://learn.microsoft.com/en-us/uwp/schemas/tiles/toastschema/element-image
     # アプリの権限として信頼されてないと file:/// 以外は は取れない
@@ -151,8 +157,8 @@ def Dracky(message, icon={}, label=None):
         icon=icon,
         xml=xml,
         app_id=TITLE,
-        group=_make_hash(TITLE),
-        tag=_make_hash(event),
+        group=group,
+        tag=tag,
         audio={'silent': 'true'},
     )
     ws.PlaySound(resource_path('Assets/nc308516m.wav'), ws.SND_FILENAME)
@@ -233,7 +239,7 @@ class taskTray:
         # サブメニューに源世庫パニガルム追加
         self.genseiko = '源世庫パニガルム'
         self.select_badges[self.genseiko] = False
-        self.last_events[self.genseiko] = False
+        self.last_events[self.genseiko] = self.genseiko
         self.badge_submenu.append(
             MenuItem(self.genseiko, self.toggleBadge, checked=lambda item: self.select_badges[str(item)])
         )
