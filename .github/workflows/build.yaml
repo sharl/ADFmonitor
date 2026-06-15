@@ -41,10 +41,11 @@ jobs:
             "--noconsole" `
             "--icon=Assets/sample.ico" `
             "--exclude-module=PIL._avif" `
-            "--exclude-module=PIL._imagingft" `
             "--exclude-module=PIL._imagingcms" `
-            "--exclude-module=winrt.windows.media.playback" `
+            "--exclude-module=PIL._imagingft" `
             "--exclude-module=winrt.windows.media.core" `
+            "--exclude-module=winrt.windows.media.playback" `
+            "--exclude-module=winrt.windows.media.speechsynthesis" `
             "--add-data=Assets/nc308516m.wav;Assets" `
             "--add-data=Assets/sample.ico;Assets" `
             "--add-data=Assets/version.txt;Assets"
