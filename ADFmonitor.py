@@ -515,10 +515,10 @@ class taskTray:
             # selected and changed event
             if self.select_badges[label] and event != laste:
                 # print(f'>> {key=} {label=} {event=} {laste=}')
-                if event:
-                    Dracky(event, label=label)
-                    print(self.getNow(), event)
+                Dracky(event, label=label)
                 self.last_events[key] = event
+                if event:
+                    print(self.getNow(), event)
 
         # 源世庫パニガルム
         # 今のところ じげんりゅう 一択で通知(念のため配列に)
@@ -530,12 +530,15 @@ class taskTray:
         # matched = True          # DEBUG: どの源世庫でもマッチ
 
         if self.select_badges[label] and matched and event != self.last_events[label]:
-            title = f'{espan} {event}'
             icon = {
                 icon_key: self.badge_cache[icon_key]
             }
+            if event:
+                title = f'{espan} {event}'
+                print(self.getNow(), title)
+            else:
+                title = ''
             Dracky(title, icon=icon, label=label)
-            print(self.getNow(), title)
 
         # 今回のイベントをセット
         self.last_events[label] = event
@@ -791,6 +794,8 @@ class taskTray:
 
             if target in NOTIFICATION_TARGET:
                 Dracky(f'{now} {titles[target]}')
+            else:
+                Dracky('')
 
         self.updateBadges()
 
@@ -801,12 +806,14 @@ class taskTray:
         self.app.menu = self.updateMenu()
         self.app.update_menu()
         if self.enableMetal:
+            label = '大行進予報'
             for t in self.metal_cache:
                 if self.isMetal(t):
-                    Dracky(f'{t} メタルーキー軍団 大行進中')
+                    Dracky(f'{t} メタルーキー軍団 大行進中', label=label)
                     self.nowMetal = True
                     return
             self.nowMetal = False
+            Dracky('', label=label)
 
     def toggleMetal(self):
         self.enableMetal = not self.enableMetal
