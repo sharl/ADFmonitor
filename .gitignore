@@ -1,6 +1,7 @@
-*.exe
-*.spec
 .venv/
 __pycache__/
-dist/
 build/
+dist/
+*.exe
+*.spec
+*.ps1
