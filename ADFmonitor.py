@@ -49,10 +49,11 @@ titles = {
     "16": "鋼塊の重滅兵団",
     "17": "金神の遺宝兵団",
     "18": "紅爆の暴賊兵団",
-    "19": "全兵団",
+    "19": "冥黒の悪夢兵団",
+    "20": "全兵団",
 }
 # 紫炎の鉄機兵団, 全兵団
-NOTIFICATION_TARGET = ['3', '19']
+NOTIFICATION_TARGET = ['3', '20']
 GOLD = (255, 215, 0)
 # 源世庫: 新ボスがきたら手動更新
 panigarms = {
@@ -204,7 +205,7 @@ class taskTray:
         self.badge_cache = {}
         self.enableMetal = False
         self.nowMetal = False
-        self.raids = self.initRaids()   # {'tengoku': '', 'inferno': '', 'pani': '', 'ikai': ''}
+        self.raids = self.initRaids()
         self.xclass = {
             'inferno': 'f-inferno',
             'pani': 'konmeiko',
@@ -223,6 +224,7 @@ class taskTray:
             'inferno': 'フェスタ・インフェルノ',
             'pani': '昏冥庫パニガルム',
             'ikai': '異界の創造主',
+            'jikken': '冒険的な実験',
         }
         self.last_events = self.raidLabel.copy()
         self.select_badges = {}
@@ -274,7 +276,13 @@ class taskTray:
             setting = Setting(**self.config.load())
             self.show_badges = setting.show_badges
             self.auto_show_hide = setting.auto_show_hide
-            self.select_badges = setting.select_badges
+            # 今後レイドコンテンツが増えた時のためにガード
+            for label in setting.select_badges:
+                self.select_badges[label] = setting.select_badges[label]
+            for key in self.raidLabel:
+                label = self.raidLabel[key]
+                if label not in self.select_badges:
+                    self.select_badges[label] = False
             # 補正のために自分に保存(Badgesでは補正したときに反映される)
             self.geometry = setting.geometry
             self.badges.orientation = setting.orientation
@@ -305,6 +313,7 @@ class taskTray:
             'inferno': str(),
             'pani': str(),
             'ikai': str(),
+            'jikken': str(),
         }
 
     def getNow(self, fmt='%H:%M:%S'):
@@ -691,6 +700,7 @@ class taskTray:
             # フェスタ
             # 昏冥庫
             # 異界
+            # 冒険的な実験
             # でセンタリング
 
             # closed の場合
@@ -700,12 +710,14 @@ class taskTray:
             # https://cache.hiroba.dqx.jp/dq_resource/img/common/right/navi/battle/inferno_fever_close_ycpxioJe8eXM7jYS5uyZ ?
             # https://cache.hiroba.dqx.jp/dq_resource/img/common/right/navi/battle/konmeiko.jpg?29439811
             # https://cache.hiroba.dqx.jp/dq_resource/img/common/right/navi/battle/ikai_close.png?29439811
+            # https://cache.hiroba.dqx.jp/dq_resource/img/common/right/navi/battle/jikken_close.jpg?29705369
             # is-open の場合
             # https://cache.hiroba.dqx.jp/dq_resource/img/common/right/navi/battle/tengoku_open.jpg?29439811
             # https://cache.hiroba.dqx.jp/dq_resource/img/common/right/navi/battle/inferno_open.jpg?29439811
             # https://cache.hiroba.dqx.jp/dq_resource/img/common/right/navi/battle/inferno_fever_open_ycpxioJe8eXM7jYS5uyZ
             # https://cache.hiroba.dqx.jp/dq_resource/img/common/right/navi/battle/konmeiko_open.jpg?29439811
             # https://cache.hiroba.dqx.jp/dq_resource/img/common/right/navi/battle/ikai_open.png?29439811
+            # https://cache.hiroba.dqx.jp/dq_resource/img/common/right/navi/battle/jikken_open.jpg?29705369 ??
             def _makeBadgeImage(badge_url):
                 with requests.get(badge_url) as r:
                     image = Image.open(io.BytesIO(r.content))
@@ -754,7 +766,7 @@ class taskTray:
                 target = soup.find(class_='tengoku-x-table_title').text.strip()
                 self.raids['tengoku'] = f'{span} {target}'
 
-            # インフェルノ・昏冥庫・異界の創造主 (一部分共通化)
+            # インフェルノ・昏冥庫・異界の創造主・冒険的な実験 (一部分共通化)
             for key in list(self.raids)[1:]:
                 class_ = key
                 if key in self.xclass:
