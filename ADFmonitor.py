@@ -29,7 +29,7 @@ from utils import resource_path
 TITLE = 'Astoltia Defense Force'
 tokoyami_url = 'https://hiroba.dqx.jp/sc/tokoyami/#raid-container'
 tengoku_url = 'https://hiroba.dqx.jp/sc/game/tengoku'
-MAX_MENUS = 8
+MAX_MENUS = 7
 # 翌日の先頭の準備
 NEXT_DAY_MARK = 'NEXT_MARK'
 # 新兵団がきたら手動更新
@@ -52,8 +52,8 @@ titles = {
     "19": "冥黒の悪夢兵団",
     "20": "全兵団",
 }
-# 紫炎の鉄機兵団, 全兵団
-NOTIFICATION_TARGET = ['3', '20']
+# 紫炎の鉄機兵団, 冥黒の悪夢兵団, 全兵団
+NOTIFICATION_TARGET = ['3', '19', '20']
 GOLD = (255, 215, 0)
 # 源世庫: 新ボスがきたら手動更新
 panigarms = {
