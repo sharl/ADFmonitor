@@ -21,9 +21,15 @@ jobs:
         with:
           python-version: 3.12
 
-      - name: Install pyinstaller and dependencies
+      - name: Clone PyInstaller, Build Bootloader and Install
+        shell: cmd
         run: |
-          python -m pip install --upgrade -r requirements.txt pip pyinstaller
+          python -m pip install --upgrade -r requirements.txt pip wheel
+          git clone https://github.com/pyinstaller/pyinstaller.git --depth 1
+          cd pyinstaller\bootloader
+          python waf configure --msvc_targets=x86_64 build install
+          cd ..
+          pip install .
 
       - name: set version
         run: |
