@@ -178,6 +178,7 @@ def getVersion():
 # 保存する設定の型定義
 @dataclass
 class Setting:
+    select_corps: dict[str, bool]
     # badgeの表示状態
     show_badges: bool
     # badgeの auto show hide
@@ -214,6 +215,16 @@ class taskTray:
             'pani': 'konmeiko',
         }
         self.panigarm = []              # [start datetime, hashkey]
+
+        # 通知する兵団の初期化
+        self.select_corps = {}
+        self.corps_submenu = []
+        for _title in titles:
+            title = titles[_title]
+            self.select_corps[title] = _title in NOTIFICATION_TARGET
+            self.corps_submenu.append(
+                MenuItem(title, self.toggleCorps, checked=lambda item: self.select_corps[str(item)])
+            )
 
         # バッジ周り初期化
         self.show_badges = False
@@ -288,6 +299,7 @@ class taskTray:
             self.badges.orientation = setting.orientation
             self.badges.is_fit_mode = setting.is_fit_mode
             self.badges.hide_title_bar = setting.hide_title_bar
+            self.select_corps = setting.select_corps
         except Exception:
             pass
 
@@ -297,6 +309,7 @@ class taskTray:
         geometry = f'+{x}+{y}'
 
         setting = Setting(
+            select_corps=self.select_corps,
             show_badges=self.show_badges,
             auto_show_hide=self.auto_show_hide,
             select_badges=self.select_badges,
@@ -367,6 +380,11 @@ class taskTray:
         self.updatePage(retry=False)
         self.doCheck(wait=False)
         webbrowser.open(tokoyami_url)
+
+    def toggleCorps(self, icon, item):
+        item = str(item)
+        self.select_corps[item] = not self.select_corps[item]
+        self.save_config()
 
     def toggleBadges(self, _, __):
         self.show_badges = not self.show_badges
@@ -441,6 +459,7 @@ class taskTray:
         item = [
             MenuItem('Open', self.doOpen, default=True, visible=False),
 
+            MenuItem('Select Corps', Menu(*self.corps_submenu)),
             MenuItem('Show Badges', self.toggleBadges, checked=lambda _: self.show_badges),
             MenuItem('Select Events', Menu(*self.badge_submenu)),
             MenuItem('Toggle Badges Title Bar', self.toggleTitle),
@@ -475,14 +494,27 @@ class taskTray:
                 continue
 
             target = self.getTarget(self.page_cache[t])
-            item.append(MenuItem(f'{t} {titles[target]}', lambda _: False, enabled=target in NOTIFICATION_TARGET, checked=lambda x: str(x).split()[0] == now))
+            item.append(
+                MenuItem(
+                    f'{t} {titles[target]}',
+                    lambda _: False,
+                    enabled=lambda x: self.select_corps[str(x).split()[1]],
+                    checked=lambda x: str(x).split()[0] == now
+                )
+            )
             idx += 1
             if idx >= MAX_MENUS:
                 break
         if idx < MAX_MENUS:
             # next day's first schedule
             target = self.getTarget(self.page_cache[NEXT_DAY_MARK])
-            item.append(MenuItem(f'06:00 {titles[target]}', lambda _: False, enabled=target in NOTIFICATION_TARGET))
+            item.append(
+                MenuItem(
+                    f'06:00 {titles[target]}',
+                    lambda _: False,
+                    enabled=lambda x: self.select_corps[str(x).split()[1]],
+                )
+            )
         item.append(Menu.SEPARATOR)
 
         # 天獄・インフェルノ・昏冥庫・異界の創造主
@@ -566,11 +598,8 @@ class taskTray:
                     # cut side 6 dot
                     self.badge_cache[target] = image.crop((6, 0, w - 6, h))
                 # crop center
-                icon_image = image.crop(((w - h) // 2, 0, (w + h) // 2, h)).resize((16, 16))
-                # add gold frame
-                if target in NOTIFICATION_TARGET:
-                    draw = ImageDraw.Draw(icon_image)
-                    draw.rectangle((0, 0, 15, 15), outline=GOLD, width=2)
+                # icon_image = image.crop(((w - h) // 2, 0, (w + h) // 2, h)).resize((16, 16))
+                icon_image = image.crop(((w - h) // 2, 0, (w + h) // 2, h))
                 return icon_image
 
         # 防衛軍
@@ -802,8 +831,12 @@ class taskTray:
             self.app.update_menu()
             print(self.getNow(), titles[target])
 
-            if target in NOTIFICATION_TARGET:
-                Dracky(f'{now} {titles[target]}')
+            if self.select_corps[titles[target]]:
+                # icon 設定
+                target = self.getTarget(self.icon_url)
+                icon_adf = self.icon_cache[target]
+                print(f'{target=} {icon_adf.size}')
+                Dracky(f'{now} {titles[target]}', icon={target: icon_adf})
             else:
                 Dracky('')
 
