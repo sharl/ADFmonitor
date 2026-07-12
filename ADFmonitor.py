@@ -19,12 +19,23 @@ from tenacity import retry, stop_after_attempt, wait_fixed
 from win11toast import notify
 from winrt.windows.ui.notifications import ToastNotificationManager
 import darkdetect as dd
-import requests
+# import requests
+from requests import Session
 import schedule
 
 from Badges import Badges
 from config import Config
 from utils import resource_path
+
+
+class LoggingSession(Session):
+    def get(self, url, *args, **kwargs):
+        # from datetime import datetime
+        # print(f"[{datetime.now().strftime('%H:%M:%S.%f')[:-3]}] HTTP Request: {url}")
+        return super().get(url, *args, **kwargs)
+
+
+requests = LoggingSession()
 
 TITLE = 'Astoltia Defense Force'
 tokoyami_url = 'https://hiroba.dqx.jp/sc/tokoyami/#raid-container'
@@ -218,7 +229,11 @@ class taskTray:
 
         # 通知する兵団の初期化
         self.select_corps = {}
-        self.corps_submenu = []
+        self.corps_submenu = [
+            MenuItem('Set All', self.setAll),
+            MenuItem('Unset All', self.unsetAll),
+            Menu.SEPARATOR,
+        ]
         for _title in titles:
             title = titles[_title]
             self.select_corps[title] = _title in NOTIFICATION_TARGET
@@ -380,6 +395,16 @@ class taskTray:
         self.updatePage(retry=False)
         self.doCheck(wait=False)
         webbrowser.open(tokoyami_url)
+
+    def setAll(self):
+        for i in self.select_corps:
+            self.select_corps[i] = True
+        self.save_config()
+
+    def unsetAll(self):
+        for i in self.select_corps:
+            self.select_corps[i] = False
+        self.save_config()
 
     def toggleCorps(self, icon, item):
         item = str(item)
@@ -679,6 +704,19 @@ class taskTray:
                         _time = f'{int(hh):02}:{mm}'
                         self.metal_cache.append(_time)
 
+                # <ul class="raid-label mt20">
+                uls = soup.find_all('ul', class_='raid-label')
+                for ul in uls:
+                    imgs = ul.find_all('img')
+                    for img in imgs:
+                        url = img.get('src')
+                        if 'label' in url:
+                            label = f'label{self.getTarget(url)}'
+                            if label not in self.badge_cache:
+                                with requests.get(url) as r:
+                                    image = Image.open(io.BytesIO(r.content))
+                                    self.badge_cache[label] = image
+
                 # panigarm
                 panigarm = soup.find_all(class_='tokoyami-panigarm')[1]
                 icon_url = panigarm.find('img').get('src')
@@ -836,7 +874,13 @@ class taskTray:
                 target = self.getTarget(self.icon_url)
                 icon_adf = self.icon_cache[target]
                 print(f'{target=} {icon_adf.size}')
-                Dracky(f'{now} {titles[target]}', icon={target: icon_adf})
+                label = f'label{target}'
+                if label in self.badge_cache:
+                    label_adf = self.badge_cache[label]
+                    print(f'{target=} {label=} {label_adf.size}')
+                    Dracky(f'{now} {titles[target]}', icon={target: label_adf})
+                else:
+                    Dracky(f'{now} {titles[target]}', icon={target: icon_adf})
             else:
                 Dracky('')
 
