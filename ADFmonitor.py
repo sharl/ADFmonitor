@@ -163,10 +163,8 @@ def Dracky(message, icon={}, image={}, label=None):
 
     # image spec: https://learn.microsoft.com/en-us/uwp/schemas/tiles/toastschema/element-image
     # アプリの権限として信頼されてないと file:/// 以外は は取れない
-    # icon = {
-    #     str: PIL.Image
-    # }
-    # image = {
+    # icon, image format
+    # {
     #     str: PIL.Image
     # }
     if not icon:
@@ -218,6 +216,7 @@ def getVersion():
 # 保存する設定の型定義
 @dataclass
 class Setting:
+    # 兵団選択状態
     select_corps: dict[str, bool]
     # badgeの表示状態
     show_badges: bool
@@ -538,13 +537,11 @@ class taskTray:
         self.badges.toggle_title()
 
     def updateMenu(self):
-        # print('updateMenu')
         self.tooltips.clear()
         now = self.getNow('%H:00')
         item = [
             MenuItem('Open', self.doOpen, default=True, visible=False),
 
-            # MenuItem('Select Corps', Menu(*self.corps_submenu)),
             MenuItem('Show Badges', self.toggleBadges, checked=lambda _: self.show_badges),
             MenuItem('Select Events', Menu(*self.badge_submenu)),
             MenuItem('Toggle Badges Title Bar', self.toggleTitle),
@@ -928,7 +925,6 @@ class taskTray:
             # set self.app.icon
             self.updateIcon()
             target = self.getTarget(self.icon_url)
-            # self.app.title = titles[target]
             self.app.menu = self.updateMenu()
 
             # ------------------------------------------------------------
