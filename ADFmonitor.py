@@ -12,7 +12,7 @@ import time
 import webbrowser
 import winsound as ws
 
-from PIL import Image, ImageDraw, ImageEnhance
+from PIL import Image, ImageEnhance
 from bs4 import BeautifulSoup
 from pystray import Icon, Menu, MenuItem
 from tenacity import retry, stop_after_attempt, wait_fixed
@@ -98,10 +98,11 @@ XML_TEMPLATE = """
 """
 
 
-def Dracky(message, icon={}, label=None):
+def Dracky(message, icon={}, image={}, label=None):
     """
     message: text 空白に応じて title, body をセット
     icon: アイコン画像
+    image: イメージ画像
     label: イベントの種類
 
     邪神の宮殿・天獄
@@ -119,6 +120,20 @@ def Dracky(message, icon={}, label=None):
     def _make_hash(name: str) -> str:
         return name[:25] + '_' + hashlib.md5(name.encode('utf-8')).hexdigest()
 
+    def label2hero(label_img: Image) -> Image:
+        """
+        label の 136x48 を hero の 364x180 に
+        364x128 に拡大して縦にセンタリング(背景透明)
+        """
+        LW, LH = label_img.size
+        HW, HH = (364, 180)
+
+        nh = int(HW / (LW / LH))
+        resized_img = label_img.resize((HW, nh), Image.Resampling.LANCZOS)
+        hero_img = Image.new("RGBA", (HW, HH), (0, 0, 0, 0))
+        hero_img.paste(resized_img, (0, int((HH - nh) / 2)))
+        return hero_img
+
     # デフォルトイベントは防衛軍
     event = label if label else 'アストルティア防衛軍'
 
@@ -135,27 +150,47 @@ def Dracky(message, icon={}, label=None):
 
     # image spec: https://learn.microsoft.com/en-us/uwp/schemas/tiles/toastschema/element-image
     # アプリの権限として信頼されてないと file:/// 以外は は取れない
+    # icon = {
+    #     str: PIL.Image
+    # }
+    # image = {
+    #     str: PIL.Image
+    # }
     if not icon:
         icon = {
             'src': resource_path('Assets/sample.ico'),
             'placement': 'appLogoOverride',
         }
     else:
-        # icon = {
-        #     str: PIL.Image
-        # }
         # キャッシュをローカルに保存して制限回避
+
+        # icon
         name = list(icon)[0]
-        image = icon[name]
+        _image = icon[name]
         tmp_name = os.path.join(
             os.environ.get('TEMP'),
             'ADF_' + name
         )
         if not os.path.exists(tmp_name):
-            image.save(tmp_name, format='PNG')
+            _image.save(tmp_name, format='PNG')
         icon = {
             'src': tmp_name,
             'placement': 'appLogoOverride',
+        }
+
+    if image:
+        # image
+        name = list(image)[0]
+        _image = label2hero(image[name])
+        tmp_name = os.path.join(
+            os.environ.get('TEMP'),
+            'ADF_' + name
+        )
+        if not os.path.exists(tmp_name):
+            _image.save(tmp_name, format='PNG')
+        image = {
+            'src': tmp_name,
+            'placement': 'hero',
         }
 
     lines = message.split(' ')
@@ -167,6 +202,7 @@ def Dracky(message, icon={}, label=None):
         title,
         body=body,
         icon=icon,
+        image=image,
         xml=xml,
         app_id=TITLE,
         group=group,
@@ -212,6 +248,7 @@ class taskTray:
         self.config = Config(TITLE)
         self.icon_url = str()
         self.page_cache = {}
+        self.tooltips = []
         self.metal_cache = []
         self.icon_cache = {}            # { "num": Image }
         self.badge_cache = {}
@@ -334,6 +371,8 @@ class taskTray:
             hide_title_bar=self.badges.hide_title_bar,
         )
         self.config.save(asdict(setting))
+        self.updateMenu()
+        self.app.title = '\n'.join(self.tooltips)
 
     def initRaids(self):
         return {
@@ -480,67 +519,18 @@ class taskTray:
         self.badges.toggle_title()
 
     def updateMenu(self):
+        print('updateMenu')
+        self.tooltips.clear()
         now = self.getNow('%H:00')
         item = [
             MenuItem('Open', self.doOpen, default=True, visible=False),
 
-            MenuItem('Select Corps', Menu(*self.corps_submenu)),
+            # MenuItem('Select Corps', Menu(*self.corps_submenu)),
             MenuItem('Show Badges', self.toggleBadges, checked=lambda _: self.show_badges),
             MenuItem('Select Events', Menu(*self.badge_submenu)),
             MenuItem('Toggle Badges Title Bar', self.toggleTitle),
             Menu.SEPARATOR,
-
-            MenuItem('Check Metal Rookies', self.toggleMetal, checked=lambda _: self.enableMetal),
-            Menu.SEPARATOR,
         ]
-
-        # metal rookies
-        if self.enableMetal:
-            idx = 0
-            for t in self.metal_cache:
-                # 現在以前はスキップ
-                if self.isOverMetal(t):
-                    continue
-
-                item.append(MenuItem(f'{t} メタルーキー', lambda _: False, checked=lambda x: self.isMetal(str(x).split()[0])))
-                idx += 1
-                if idx >= MAX_MENUS:
-                    break
-            item.append(Menu.SEPARATOR)
-
-        # defense force
-        matched = False
-        idx = 0
-        for t in self.page_cache:
-            # 現在以前はスキップ
-            if t == now:
-                matched = True
-            if not matched or t == NEXT_DAY_MARK:
-                continue
-
-            target = self.getTarget(self.page_cache[t])
-            item.append(
-                MenuItem(
-                    f'{t} {titles[target]}',
-                    lambda _: False,
-                    enabled=lambda x: self.select_corps[str(x).split()[1]],
-                    checked=lambda x: str(x).split()[0] == now
-                )
-            )
-            idx += 1
-            if idx >= MAX_MENUS:
-                break
-        if idx < MAX_MENUS:
-            # next day's first schedule
-            target = self.getTarget(self.page_cache[NEXT_DAY_MARK])
-            item.append(
-                MenuItem(
-                    f'06:00 {titles[target]}',
-                    lambda _: False,
-                    enabled=lambda x: self.select_corps[str(x).split()[1]],
-                )
-            )
-        item.append(Menu.SEPARATOR)
 
         # 天獄・インフェルノ・昏冥庫・異界の創造主
         # yyyy/mm/dd hh:59 まで {target}
@@ -563,6 +553,108 @@ class taskTray:
         item.append(MenuItem(f'{espan} {panigarms.get(key, key)}', lambda _: False, checked=lambda _: True))
         item.append(MenuItem(f'{nspan} {panigarms[lst[nxt]]}', lambda _: False, checked=lambda _: False))
         item.append(MenuItem(f'{nnspan} {panigarms[lst[nnxt]]}', lambda _: False, checked=lambda _: False))
+
+        #     MenuItem('Check Metal Rookies', self.toggleMetal, checked=lambda _: self.enableMetal),
+        #     Menu.SEPARATOR,
+        # ]
+        item.append(
+            Menu.SEPARATOR,
+        )
+        item.append(
+            MenuItem('Check Metal Rookies', self.toggleMetal, checked=lambda _: self.enableMetal),
+        )
+        item.append(
+            Menu.SEPARATOR,
+        )
+
+        # metal rookies
+        if self.enableMetal:
+            idx = 0
+            for t in self.metal_cache:
+                # 現在以前はスキップ
+                if self.isOverMetal(t):
+                    continue
+
+                item.append(MenuItem(f'{t} メタルーキー', lambda _: False, checked=lambda x: self.isMetal(str(x).split()[0])))
+                idx += 1
+                if idx >= MAX_MENUS:
+                    break
+            item.append(Menu.SEPARATOR)
+
+        # defense force
+        # DEBUG _
+        # _item = []
+
+        matched = False
+        idx = 0
+        for t in self.page_cache:
+            # 現在以前はスキップ
+            if t == now:
+                matched = True
+            if not matched or t == NEXT_DAY_MARK:
+                continue
+
+            target = self.getTarget(self.page_cache[t])
+            title = titles[target]
+            if self.select_corps[title]:
+                print(f'{t} {title}')
+                self.tooltips.append(f'{t} {title}')
+            # _trim = titles[target]
+            # self.tooltips.append(f'{t} {_trim}')
+            # DEBUG _
+            item.append(
+                MenuItem(
+                    f'{t} {titles[target]}',
+                    lambda _: False,
+                    enabled=lambda x: self.select_corps[str(x).split()[1]],
+                    checked=lambda x: str(x).split()[0] == now
+                )
+            )
+            idx += 1
+            if idx >= MAX_MENUS:
+                break
+        if idx < MAX_MENUS:
+            # next day's first schedule
+            target = self.getTarget(self.page_cache[NEXT_DAY_MARK])
+            title = titles[target]
+            if self.select_corps[title]:
+                self.tooltips.append(f'06:00 {title}')
+                self.tooltips.append(f'06:00 {title}')
+            # print(f'06:00 {titles[target]}')
+            # _trim = titles[target]
+            # self.tooltips.append(f'06:00 {_trim}')
+            # DEBUG _
+            item.append(
+                MenuItem(
+                    f'06:00 {titles[target]}',
+                    lambda _: False,
+                    enabled=lambda x: self.select_corps[str(x).split()[1]],
+                )
+            )
+        item.append(Menu.SEPARATOR)
+        item.append(MenuItem('Select Corps', Menu(*self.corps_submenu)))
+
+        # # 天獄・インフェルノ・昏冥庫・異界の創造主
+        # # yyyy/mm/dd hh:59 まで {target}
+        # for key in self.raids:
+        #     if self.raids[key]:
+        #         url = f'{tengoku_url}#_{key}'
+        #         item.append(MenuItem(f'{self.raids[key]}', lambda _: webbrowser.open(url), checked=lambda _: True))
+        # if any(self.raids.values()):
+        #     item.append(Menu.SEPARATOR)
+
+        # # panigarm
+        # sdate, key = self.panigarm
+        # lst = list(panigarms)
+        # idx = lst.index(key)
+        # nxt = (idx + 1) % len(panigarms)
+        # nnxt = (idx + 2) % len(panigarms)
+        # espan = (sdate + td(days=NEXT_PANIGARM, hours=5, minutes=59)).strftime('%Y/%m/%d %H:%M まで')
+        # nspan = (sdate + td(days=NEXT_PANIGARM, hours=6)).strftime('%Y/%m/%d %H:%M から')
+        # nnspan = (sdate + td(days=NEXT_PANIGARM * 2, hours=6)).strftime('%Y/%m/%d %H:%M から')
+        # item.append(MenuItem(f'{espan} {panigarms.get(key, key)}', lambda _: False, checked=lambda _: True))
+        # item.append(MenuItem(f'{nspan} {panigarms[lst[nxt]]}', lambda _: False, checked=lambda _: False))
+        # item.append(MenuItem(f'{nnspan} {panigarms[lst[nnxt]]}', lambda _: False, checked=lambda _: False))
 
         item.append(Menu.SEPARATOR)
         item.append(MenuItem(f'Exit {getVersion()}', self.stopApp))
@@ -864,23 +956,49 @@ class taskTray:
             # set self.app.icon
             self.updateIcon()
             target = self.getTarget(self.icon_url)
-            self.app.title = titles[target]
+            # self.app.title = titles[target]
             self.app.menu = self.updateMenu()
+
+            # ------------------------------------------------------------
+            # TODO: NEED CHECK LENGTH
+            # self.tooltips built with self.updateMenu()
+            # tooltip = ''
+            # for line in self.tooltips:
+            #     # wchar 128 => 256
+            #     if len(bytes(tooltip + '\n' + line, 'utf-8')) > 256 - 1:
+            #         break
+            #     if tooltip:
+            #         tooltip += '\n'
+            #     tooltip += line
+            # l_plus = len(bytes(tooltip, 'utf-8'))
+            # print('tooltip +=   len max 256', l_plus)
+            # l_join = len(bytes('\n'.join(self.tooltips), 'utf-8'))
+            # print('tooltip join len max 256', l_join)
+            # self.app.title = tooltip
+            self.app.title = '\n'.join(self.tooltips)
+            # ------------------------------------------------------------
+
             self.app.update_menu()
             print(self.getNow(), titles[target])
 
+            # 兵団の通知
             if self.select_corps[titles[target]]:
-                # icon 設定
+                # icon, image 設定
                 target = self.getTarget(self.icon_url)
-                icon_adf = self.icon_cache[target]
-                print(f'{target=} {icon_adf.size}')
+                # image 用ラベル
                 label = f'label{target}'
+
+                icon = {target: self.icon_cache[target]}
+                image = {}
+
                 if label in self.badge_cache:
-                    label_adf = self.badge_cache[label]
-                    print(f'{target=} {label=} {label_adf.size}')
-                    Dracky(f'{now} {titles[target]}', icon={target: label_adf})
-                else:
-                    Dracky(f'{now} {titles[target]}', icon={target: icon_adf})
+                    image[label] = self.badge_cache[label]
+
+                Dracky(
+                    f'{now} {titles[target]}',
+                    icon=icon,
+                    image=image,
+                )
             else:
                 Dracky('')
 
