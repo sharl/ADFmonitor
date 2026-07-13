@@ -19,7 +19,6 @@ from tenacity import retry, stop_after_attempt, wait_fixed
 from win11toast import notify
 from winrt.windows.ui.notifications import ToastNotificationManager
 import darkdetect as dd
-# import requests
 from requests import Session
 import schedule
 
@@ -28,14 +27,14 @@ from config import Config
 from utils import resource_path
 
 
-class LoggingSession(Session):
+class DQXSession(Session):
     def get(self, url, *args, **kwargs):
-        # from datetime import datetime
-        # print(f"[{datetime.now().strftime('%H:%M:%S.%f')[:-3]}] HTTP Request: {url}")
+        from datetime import datetime
+        print(f"{datetime.now().strftime('%H:%M:%S')} fetch {url}")
         return super().get(url, *args, **kwargs)
 
 
-requests = LoggingSession()
+requests = DQXSession()
 
 TITLE = 'Astoltia Defense Force'
 tokoyami_url = 'https://hiroba.dqx.jp/sc/tokoyami/#raid-container'
@@ -582,8 +581,6 @@ class taskTray:
             item.append(Menu.SEPARATOR)
 
         # defense force
-        # DEBUG _
-        # _item = []
 
         matched = False
         idx = 0
@@ -601,7 +598,6 @@ class taskTray:
                 self.tooltips.append(f'{t} {title}')
             # _trim = titles[target]
             # self.tooltips.append(f'{t} {_trim}')
-            # DEBUG _
             item.append(
                 MenuItem(
                     f'{t} {titles[target]}',
@@ -619,11 +615,9 @@ class taskTray:
             title = titles[target]
             if self.select_corps[title]:
                 self.tooltips.append(f'06:00 {title}')
-                self.tooltips.append(f'06:00 {title}')
             # print(f'06:00 {titles[target]}')
             # _trim = titles[target]
             # self.tooltips.append(f'06:00 {_trim}')
-            # DEBUG _
             item.append(
                 MenuItem(
                     f'06:00 {titles[target]}',
@@ -783,7 +777,7 @@ class taskTray:
                     self.page_cache[_time] = icon_url
 
                 # metal rookies
-                self.metal_cache = []
+                self.metal_cache.clear()
                 trs = tables[1].find_all('tr')
                 for tr in trs:
                     tds = tr.find_all('td')
