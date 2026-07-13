@@ -119,7 +119,7 @@ def Dracky(message, icon={}, image={}, label=None):
     def _make_hash(name: str) -> str:
         return name[:25] + '_' + hashlib.md5(name.encode('utf-8')).hexdigest()
 
-    def label2hero(label_img: Image) -> Image:
+    def _label2hero(label_img: Image) -> Image:
         """
         label の 136x48 を hero の 364x180 に
         364x128 に拡大して縦にセンタリング(背景透明)
@@ -132,6 +132,20 @@ def Dracky(message, icon={}, image={}, label=None):
         hero_img = Image.new("RGBA", (HW, HH), (0, 0, 0, 0))
         hero_img.paste(resized_img, (0, int((HH - nh) / 2)))
         return hero_img
+
+    def _make_img_cache(img: dict) -> str:
+        name = list(img)[0]
+        if name.startswith('label'):
+            _image = _label2hero(image[name])
+        else:
+            _image = img[name]
+        tmp_name = os.path.join(
+            os.environ.get('TEMP'),
+            'ADF_' + name
+        )
+        if not os.path.exists(tmp_name):
+            _image.save(tmp_name, format='PNG')
+        return tmp_name
 
     # デフォルトイベントは防衛軍
     event = label if label else 'アストルティア防衛軍'
@@ -161,34 +175,14 @@ def Dracky(message, icon={}, image={}, label=None):
             'placement': 'appLogoOverride',
         }
     else:
-        # キャッシュをローカルに保存して制限回避
-
-        # icon
-        name = list(icon)[0]
-        _image = icon[name]
-        tmp_name = os.path.join(
-            os.environ.get('TEMP'),
-            'ADF_' + name
-        )
-        if not os.path.exists(tmp_name):
-            _image.save(tmp_name, format='PNG')
         icon = {
-            'src': tmp_name,
+            'src': _make_img_cache(icon),
             'placement': 'appLogoOverride',
         }
 
     if image:
-        # image
-        name = list(image)[0]
-        _image = label2hero(image[name])
-        tmp_name = os.path.join(
-            os.environ.get('TEMP'),
-            'ADF_' + name
-        )
-        if not os.path.exists(tmp_name):
-            _image.save(tmp_name, format='PNG')
         image = {
-            'src': tmp_name,
+            'src': _make_img_cache(image),
             'placement': 'hero',
         }
 
