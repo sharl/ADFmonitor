@@ -457,13 +457,7 @@ class taskTray:
         for i in self.select_corps:
             self.select_corps[i] = True
         self.save_config()
-        print('dracky!!')
-        # now = self.getNow('%H:00')
-        # Dracky(
-        #     f'{now} {titles[target]}',
-        #     icon=icon,
-        #     image=image,
-        # )
+        self.notifyCorps()
 
     def unsetAll(self):
         for i in self.select_corps:
@@ -478,7 +472,6 @@ class taskTray:
         # 通知有効・襲撃中なら通知する
         now = self.getNow('%H:00')
         line = f'{now} {item}'
-        print('toggleCorps', item, line, self.tooltips, self.select_corps[item])
         if line in self.tooltips and self.select_corps[item]:
             self.notifyCorps()
 
