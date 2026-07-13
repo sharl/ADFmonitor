@@ -434,20 +434,53 @@ class taskTray:
         self.doCheck(wait=False)
         webbrowser.open(tokoyami_url)
 
+    def notifyCorps(self):
+        now = self.getNow('%H:00')
+
+        # icon, image 設定
+        target = self.getTarget(self.page_cache[now])
+        # image 用ラベル
+        label = f'label{target}'
+        icon = {target: self.icon_cache[target]}
+        image = {}
+
+        if label in self.badge_cache:
+            image[label] = self.badge_cache[label]
+
+        Dracky(
+            f'{now} {titles[target]}',
+            icon=icon,
+            image=image,
+        )
+
     def setAll(self):
         for i in self.select_corps:
             self.select_corps[i] = True
         self.save_config()
+        print('dracky!!')
+        # now = self.getNow('%H:00')
+        # Dracky(
+        #     f'{now} {titles[target]}',
+        #     icon=icon,
+        #     image=image,
+        # )
 
     def unsetAll(self):
         for i in self.select_corps:
             self.select_corps[i] = False
         self.save_config()
 
-    def toggleCorps(self, icon, item):
+    def toggleCorps(self, _, item):
         item = str(item)
         self.select_corps[item] = not self.select_corps[item]
         self.save_config()
+        # 現在の兵団かどうかチェック
+        # 通知有効・襲撃中なら通知する
+        now = self.getNow('%H:00')
+        line = f'{now} {item}'
+        print('toggleCorps', item, line, self.tooltips, self.select_corps[item])
+        if line in self.tooltips and self.select_corps[item]:
+            self.notifyCorps()
 
     def toggleBadges(self, _, __):
         self.show_badges = not self.show_badges
@@ -935,22 +968,7 @@ class taskTray:
 
             # 兵団の通知
             if self.select_corps[titles[target]]:
-                # icon, image 設定
-                target = self.getTarget(self.icon_url)
-                # image 用ラベル
-                label = f'label{target}'
-
-                icon = {target: self.icon_cache[target]}
-                image = {}
-
-                if label in self.badge_cache:
-                    image[label] = self.badge_cache[label]
-
-                Dracky(
-                    f'{now} {titles[target]}',
-                    icon=icon,
-                    image=image,
-                )
+                self.notifyCorps()
             else:
                 Dracky('')
 
