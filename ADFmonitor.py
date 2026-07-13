@@ -518,7 +518,7 @@ class taskTray:
         self.badges.toggle_title()
 
     def updateMenu(self):
-        print('updateMenu')
+        # print('updateMenu')
         self.tooltips.clear()
         now = self.getNow('%H:00')
         item = [
@@ -531,7 +531,7 @@ class taskTray:
             Menu.SEPARATOR,
         ]
 
-        # 天獄・インフェルノ・昏冥庫・異界の創造主
+        # 天獄・インフェルノ・昏冥庫・異界の創造主・冒険的な実験
         # yyyy/mm/dd hh:59 まで {target}
         for key in self.raids:
             if self.raids[key]:
@@ -553,18 +553,10 @@ class taskTray:
         item.append(MenuItem(f'{nspan} {panigarms[lst[nxt]]}', lambda _: False, checked=lambda _: False))
         item.append(MenuItem(f'{nnspan} {panigarms[lst[nnxt]]}', lambda _: False, checked=lambda _: False))
 
-        #     MenuItem('Check Metal Rookies', self.toggleMetal, checked=lambda _: self.enableMetal),
-        #     Menu.SEPARATOR,
-        # ]
-        item.append(
-            Menu.SEPARATOR,
-        )
-        item.append(
-            MenuItem('Check Metal Rookies', self.toggleMetal, checked=lambda _: self.enableMetal),
-        )
-        item.append(
-            Menu.SEPARATOR,
-        )
+        # metal rookies menu
+        item.append(Menu.SEPARATOR)
+        item.append(MenuItem('Check Metal Rookies', self.toggleMetal, checked=lambda _: self.enableMetal))
+        item.append(Menu.SEPARATOR)
 
         # metal rookies
         if self.enableMetal:
@@ -581,7 +573,6 @@ class taskTray:
             item.append(Menu.SEPARATOR)
 
         # defense force
-
         matched = False
         idx = 0
         for t in self.page_cache:
@@ -594,10 +585,8 @@ class taskTray:
             target = self.getTarget(self.page_cache[t])
             title = titles[target]
             if self.select_corps[title]:
-                print(f'{t} {title}')
+                # print(f'{t} {title}')
                 self.tooltips.append(f'{t} {title}')
-            # _trim = titles[target]
-            # self.tooltips.append(f'{t} {_trim}')
             item.append(
                 MenuItem(
                     f'{t} {titles[target]}',
@@ -615,9 +604,6 @@ class taskTray:
             title = titles[target]
             if self.select_corps[title]:
                 self.tooltips.append(f'06:00 {title}')
-            # print(f'06:00 {titles[target]}')
-            # _trim = titles[target]
-            # self.tooltips.append(f'06:00 {_trim}')
             item.append(
                 MenuItem(
                     f'06:00 {titles[target]}',
@@ -625,36 +611,16 @@ class taskTray:
                     enabled=lambda x: self.select_corps[str(x).split()[1]],
                 )
             )
-        item.append(Menu.SEPARATOR)
+
+        if any(self.select_corps.values()):
+            item.append(Menu.SEPARATOR)
+
         item.append(MenuItem('Select Corps', Menu(*self.corps_submenu)))
-
-        # # 天獄・インフェルノ・昏冥庫・異界の創造主
-        # # yyyy/mm/dd hh:59 まで {target}
-        # for key in self.raids:
-        #     if self.raids[key]:
-        #         url = f'{tengoku_url}#_{key}'
-        #         item.append(MenuItem(f'{self.raids[key]}', lambda _: webbrowser.open(url), checked=lambda _: True))
-        # if any(self.raids.values()):
-        #     item.append(Menu.SEPARATOR)
-
-        # # panigarm
-        # sdate, key = self.panigarm
-        # lst = list(panigarms)
-        # idx = lst.index(key)
-        # nxt = (idx + 1) % len(panigarms)
-        # nnxt = (idx + 2) % len(panigarms)
-        # espan = (sdate + td(days=NEXT_PANIGARM, hours=5, minutes=59)).strftime('%Y/%m/%d %H:%M まで')
-        # nspan = (sdate + td(days=NEXT_PANIGARM, hours=6)).strftime('%Y/%m/%d %H:%M から')
-        # nnspan = (sdate + td(days=NEXT_PANIGARM * 2, hours=6)).strftime('%Y/%m/%d %H:%M から')
-        # item.append(MenuItem(f'{espan} {panigarms.get(key, key)}', lambda _: False, checked=lambda _: True))
-        # item.append(MenuItem(f'{nspan} {panigarms[lst[nxt]]}', lambda _: False, checked=lambda _: False))
-        # item.append(MenuItem(f'{nnspan} {panigarms[lst[nnxt]]}', lambda _: False, checked=lambda _: False))
-
         item.append(Menu.SEPARATOR)
         item.append(MenuItem(f'Exit {getVersion()}', self.stopApp))
 
         # イベント発生チェック ---------------------------------------
-        # 天獄・フェスタ・昏冥庫・異界
+        # 天獄・フェスタ・昏冥庫・異界・実験
         for key in self.raids:
             event = self.raids[key]
             label = self.raidLabel[key]
@@ -847,14 +813,6 @@ class taskTray:
             soup = BeautifulSoup(r.content, 'html.parser')
 
             # バトルコンテンツ情報
-
-            # これやめてテキストから画像にするかも
-            # 天獄
-            # フェスタ
-            # 昏冥庫
-            # 異界
-            # 冒険的な実験
-            # でセンタリング
 
             # closed の場合
             # https://cache.hiroba.dqx.jp/dq_resource/img/common/right/navi/battle/tengoku.jpg?29439811
