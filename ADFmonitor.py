@@ -97,11 +97,12 @@ XML_TEMPLATE = """
 """
 
 
-def Dracky(message, icon={}, image={}, label=None):
+def Dracky(message, icon={}, image={}, hero=False, label=None):
     """
     message: text 空白に応じて title, body をセット
     icon: アイコン画像
     image: イメージ画像
+    hero: image placement: True: 'hero'
     label: イベントの種類
 
     邪神の宮殿・天獄
@@ -181,8 +182,9 @@ def Dracky(message, icon={}, image={}, label=None):
     if image:
         image = {
             'src': _make_img_cache(image),
-            'placement': 'hero',
         }
+        if hero:
+            image['placement'] = 'hero'
 
     lines = message.split(' ')
     title = lines[-1]
@@ -444,6 +446,7 @@ class taskTray:
             f'{now} {titles[target]}',
             icon=icon,
             image=image,
+            hero=True,
         )
 
     def setAll(self):
@@ -484,6 +487,9 @@ class taskTray:
         self.save_config()
 
     def updateBadges(self):
+        def small(img):
+            return img.resize((27, 27))
+
         def dimm(image):
             return ImageEnhance.Brightness(image).enhance(0.5)
 
@@ -508,9 +514,9 @@ class taskTray:
             ic1 = (ic0 + 1) % len(panigarms)        # next
             ic2 = (ic1 + 1) % len(panigarms)        # next next
             images.append([                         # list
-                self.badge_cache[lst[ic0]],
-                dimm(self.badge_cache[lst[ic1]]),
-                dimm(self.badge_cache[lst[ic2]]),
+                small(self.badge_cache[lst[ic0]]),
+                small(dimm(self.badge_cache[lst[ic1]])),
+                small(dimm(self.badge_cache[lst[ic2]])),
             ])
 
         adfs = []
@@ -650,7 +656,11 @@ class taskTray:
             # selected and changed event
             if self.select_badges[label] and event != laste:
                 # print(f'>> {key=} {label=} {event=} {laste=}')
-                Dracky(event, label=label)
+                key_open = f'{key}_open'
+                image = {}
+                if key_open in self.badge_cache:
+                    image[key] = self.badge_cache[key_open]
+                Dracky(event, image=image, label=label)
                 self.last_events[key] = event
                 if event:
                     print(self.getNow(), event)
@@ -673,7 +683,7 @@ class taskTray:
                 print(self.getNow(), title)
             else:
                 title = ''
-            Dracky(title, icon=icon, label=label)
+            Dracky(title, image=icon, label=label)
 
         # 今回のイベントをセット
         self.last_events[label] = event
@@ -692,7 +702,6 @@ class taskTray:
                     # cut side 6 dot
                     self.badge_cache[target] = image.crop((6, 0, w - 6, h))
                 # crop center
-                # icon_image = image.crop(((w - h) // 2, 0, (w + h) // 2, h)).resize((16, 16))
                 icon_image = image.crop(((w - h) // 2, 0, (w + h) // 2, h))
                 return icon_image
 
@@ -801,7 +810,7 @@ class taskTray:
                     target = self.getTarget(icon_url)
                     if target not in self.badge_cache:
                         with requests.get(icon_url) as r:
-                            image = Image.open(io.BytesIO(r.content)).resize((27, 27))
+                            image = Image.open(io.BytesIO(r.content))
                             self.badge_cache[target] = image
 
                 pani_url_fmt = icon_url.replace(key, '{}')
