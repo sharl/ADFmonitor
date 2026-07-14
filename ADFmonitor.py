@@ -6,6 +6,7 @@ import hashlib
 import io
 import os
 import re
+import shutil
 import sys
 import threading
 import time
@@ -37,6 +38,10 @@ class DQXSession(Session):
 requests = DQXSession()
 
 TITLE = 'Astoltia Defense Force'
+WORK_DIR = os.path.join(os.environ.get('TEMP'), 'ADF')
+if os.path.exists(WORK_DIR):
+    shutil.rmtree(WORK_DIR)
+os.makedirs(WORK_DIR)
 tokoyami_url = 'https://hiroba.dqx.jp/sc/tokoyami/#raid-container'
 tengoku_url = 'https://hiroba.dqx.jp/sc/game/tengoku'
 MAX_MENUS = 7
@@ -97,7 +102,7 @@ XML_TEMPLATE = """
 """
 
 
-def Dracky(message, icon={}, image={}, hero=False, label=None):
+def Dracky(message, icon={}, image={}, hero=False, label=None, work_dir=WORK_DIR):
     """
     message: text 空白に応じて title, body をセット
     icon: アイコン画像
@@ -140,10 +145,7 @@ def Dracky(message, icon={}, image={}, hero=False, label=None):
             _image = _label2hero(image[name])
         else:
             _image = img[name]
-        tmp_name = os.path.join(
-            os.environ.get('TEMP'),
-            'ADF_' + name
-        )
+        tmp_name = os.path.join(work_dir, name)
         if not os.path.exists(tmp_name):
             _image.save(tmp_name, format='PNG')
         return tmp_name
