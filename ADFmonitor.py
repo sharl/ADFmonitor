@@ -19,6 +19,7 @@ from pystray import Icon, Menu, MenuItem
 from tenacity import retry, stop_after_attempt, wait_fixed
 from win11toast import notify
 from winrt.windows.ui.notifications import ToastNotificationManager
+from winrt.windows.ui.viewmanagement import UISettings
 import darkdetect as dd
 from requests import Session
 import schedule
@@ -133,20 +134,32 @@ def Dracky(message, icon={}, image={}, hero=False, label=None, work_dir=WORK_DIR
         LW, LH = label_img.size
         HW, HH = (364, 180)
 
-        nh = int(HW / (LW / LH))
-        resized_img = label_img.resize((HW, nh), Image.Resampling.LANCZOS)
+        # no scaling code
+        # nh = int(HW / (LW / LH))
+        # resized_img = label_img.resize((HW, nh), Image.Resampling.LANCZOS)
+
+        try:
+            current_factor = UISettings().text_scale_factor
+        except Exception:
+            current_factor = 1
+        delta_m = 80.0 * (current_factor - 1.0)
+        w_safe = max(200, HW - delta_m)
+        ratio = w_safe / HW
+        nw = int(ratio * HW)
+        nh = int(ratio * HW / (LW / LH))
+        resized_img = label_img.resize((nw, nh), Image.Resampling.LANCZOS)
         hero_img = Image.new("RGBA", (HW, HH), (0, 0, 0, 0))
         hero_img.paste(resized_img, (0, int((HH - nh) / 2)))
         return hero_img
 
     def _make_img_cache(img: dict) -> str:
         name = list(img)[0]
-        if name.startswith('label'):
-            _image = _label2hero(image[name])
-        else:
-            _image = img[name]
         tmp_name = os.path.join(work_dir, name)
         if not os.path.exists(tmp_name):
+            if name.startswith('label'):
+                _image = _label2hero(img[name])
+            else:
+                _image = img[name]
             _image.save(tmp_name, format='PNG')
         return tmp_name
 
@@ -171,22 +184,21 @@ def Dracky(message, icon={}, image={}, hero=False, label=None, work_dir=WORK_DIR
     #     str: PIL.Image
     # }
     if not icon:
-        icon = {
+        _icon = {
             'src': resource_path('Assets/sample.ico'),
             'placement': 'appLogoOverride',
         }
     else:
-        icon = {
+        _icon = {
             'src': _make_img_cache(icon),
             'placement': 'appLogoOverride',
         }
 
+    _image = {}
     if image:
-        image = {
-            'src': _make_img_cache(image),
-        }
+        _image['src'] = _make_img_cache(image)
         if hero:
-            image['placement'] = 'hero'
+            _image['placement'] = 'hero'
 
     lines = message.split(' ')
     title = lines[-1]
@@ -196,8 +208,8 @@ def Dracky(message, icon={}, image={}, hero=False, label=None, work_dir=WORK_DIR
     notify(
         title,
         body=body,
-        icon=icon,
-        image=image,
+        icon=_icon,
+        image=_image,
         xml=xml,
         app_id=TITLE,
         group=group,
@@ -205,8 +217,6 @@ def Dracky(message, icon={}, image={}, hero=False, label=None, work_dir=WORK_DIR
         audio={'silent': 'true'},
     )
     ws.PlaySound(resource_path('Assets/nc308516m.wav'), ws.SND_FILENAME)
-    time.sleep(0.2)
-    # TODO: if hero is True, modified image, silent update is needed
 
 
 def getVersion():
