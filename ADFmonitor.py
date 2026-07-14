@@ -205,6 +205,8 @@ def Dracky(message, icon={}, image={}, hero=False, label=None, work_dir=WORK_DIR
         audio={'silent': 'true'},
     )
     ws.PlaySound(resource_path('Assets/nc308516m.wav'), ws.SND_FILENAME)
+    time.sleep(0.2)
+    # TODO: if hero is True, modified image, silent update is needed
 
 
 def getVersion():
