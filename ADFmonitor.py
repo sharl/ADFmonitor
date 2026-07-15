@@ -669,7 +669,7 @@ class taskTray:
             # selected and changed event
             if self.select_badges[label] and event != laste:
                 # print(f'>> {key=} {label=} {event=} {laste=}')
-                key_open = f'{key}_open'
+                key_open = f'{self.xnames[key] if key in self.xnames else key}_open'
                 image = {}
                 if key_open in self.badge_cache:
                     image[key] = self.badge_cache[key_open]
