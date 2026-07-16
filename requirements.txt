@@ -27,3 +27,4 @@ winrt-Windows.Media.SpeechSynthesis
 winrt-Windows.Storage
 winrt-Windows.Storage.Streams
 winrt-Windows.UI.Notifications
+winrt-Windows.UI.ViewManagement
