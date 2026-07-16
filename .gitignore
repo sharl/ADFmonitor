@@ -3,6 +3,7 @@
 __pycache__/
 build/
 dist/
-*.exe
 *.spec
+.exp/
+*.log
 *.ps1
