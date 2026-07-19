@@ -927,6 +927,8 @@ class taskTray:
                     target = opened.find(class_=f'{class_}-target-label')
                     if key == 'ikai' and target is None:
                         target = '異界の創造主'
+                    elif key == 'jikken' and target is None:
+                        target = '特別なモンスター'
                     else:
                         target = target.text.strip()
                     self.raids[key] = f'{span} {target}'
