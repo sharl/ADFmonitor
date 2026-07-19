@@ -18,12 +18,12 @@
 
 Windows のタスクトレイに常駐して現在襲撃中の兵団を手軽に知ることができます
 
-- アイコンにマウスカーソルを乗せると現在の兵団をツールチップに表示します
-- アイコンを右クリックすると現在以降のスケジュールを表示します
+- アイコンにマウスカーソルを乗せると選択した兵団のスケジュールをツールチップに表示します
 - アイコンを左クリックするとつよさ予報のページを開きます
-- 紫炎の鉄機兵団・冥黒の悪夢兵団・全兵団が始まるとWindowsの通知センターでお知らせします
+- アイコンを右クリックすると現在以降のスケジュールを表示します
+- 選択した兵団(デフォルトは紫炎の鉄機兵団・冥黒の悪夢兵団・全兵団)が始まるとWindowsの通知センターでお知らせします
 
-## 新機能 Badge について
+## Badge について
 
 ![](Assets/Badge.png)
 
@@ -46,6 +46,8 @@ Windows のタスクトレイに常駐して現在襲撃中の兵団を手軽に
 ```
 git clone https://github.com/sharl/ADFmonitor.git
 cd ADFmonitor
+python -m venv .venv
+.\.venv\Scripts\activate
 pip install -r requirements.txt
 python ADFmonitor.py
 ```
