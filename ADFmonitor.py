@@ -102,18 +102,20 @@ XML_TEMPLATE = """
 """
 
 
-def Dracky(message, icon={}, image={}, hero=False, label=None, work_dir=WORK_DIR):
+def Dracky(message, icon={}, image={}, hero=False, label=None, on_click=None, work_dir=WORK_DIR):
     """
     message: text 空白に応じて title, body をセット
     icon: アイコン画像
     image: イメージ画像
     hero: image placement: True: 'hero'
     label: イベントの種類
+    on_click: 通知をクリックしたときのリンク先
 
     邪神の宮殿・天獄
     フェスタ・インフェルノ
     昏冥庫パニガルム
     異界の創造主
+    まもの博士の冒険的な実験
     源世庫パニガルム
     アストルティア防衛軍
     """
@@ -213,6 +215,7 @@ def Dracky(message, icon={}, image={}, hero=False, label=None, work_dir=WORK_DIR
         app_id=TITLE,
         group=group,
         tag=tag,
+        on_click=on_click,
         audio={'silent': 'true'},
     )
     ws.PlaySound(resource_path('Assets/nc308516m.wav'), ws.SND_FILENAME)
@@ -262,12 +265,16 @@ class taskTray:
         self.enableMetal = False
         self.nowMetal = False
         self.raids = self.initRaids()
+        self.on_clicks = self.initRaids()
         self.xclass = {
             'inferno': 'f-inferno',
             'pani': 'konmeiko',
         }
         self.xnames = {
             'pani': 'konmeiko',
+        }
+        self.xleaves = {
+            'jikken': 'mamo',
         }
         self.panigarm = []              # [start datetime, hashkey]
 
@@ -661,6 +668,7 @@ class taskTray:
             event = self.raids[key]
             label = self.raidLabel[key]
             laste = self.last_events[key]
+            on_click = self.on_clicks[key]
 
             # DEBUG events test
             # if key == 'tengoku':
@@ -669,11 +677,11 @@ class taskTray:
             # selected and changed event
             if self.select_badges[label] and event != laste:
                 # print(f'>> {key=} {label=} {event=} {laste=}')
-                key_open = f'{self.xnames[key] if key in self.xnames else key}_open'
+                key = f'{self.xnames[key] if key in self.xnames else key}'
                 image = {}
-                if key_open in self.badge_cache:
-                    image[key] = self.badge_cache[key_open]
-                Dracky(event, image=image, label=label)
+                if key in self.badge_cache:
+                    image[key] = self.badge_cache[key]
+                Dracky(event, image=image, hero=True, label=label, on_click=on_click)
                 self.last_events[key] = event
                 if event:
                     print(self.getNow(), event)
@@ -849,6 +857,7 @@ class taskTray:
         # バトルコンテンツ出現情報
         with requests.get(tengoku_url, timeout=10) as r:
             self.raids = self.initRaids()
+            self.on_clicks = self.initRaids()
             soup = BeautifulSoup(r.content, 'html.parser')
 
             # バトルコンテンツ情報
@@ -868,6 +877,27 @@ class taskTray:
             # https://cache.hiroba.dqx.jp/dq_resource/img/common/right/navi/battle/konmeiko_open.jpg?29439811
             # https://cache.hiroba.dqx.jp/dq_resource/img/common/right/navi/battle/ikai_open.png?29439811
             # https://cache.hiroba.dqx.jp/dq_resource/img/common/right/navi/battle/jikken_open.jpg?29705369 ??
+            #   天獄
+            #   https://hiroba.dqx.jp/sc/game/tengoku#_tengoku
+            #   https://cache.hiroba.dqx.jp/dq_resource/img/game/tengoku/open.jpg?201811152
+            #   600x391
+            #   フェスタ
+            #   https://hiroba.dqx.jp/sc/game/tengoku#_inferno
+            #   https://cache.hiroba.dqx.jp/dq_resource/img/game/inferno/open.png?456
+            #   588x436
+            #   昏冥庫
+            #   https://hiroba.dqx.jp/sc/game/tengoku#_pani
+            #   https://cache.hiroba.dqx.jp/dq_resource/img/game/konmeiko/open.png?456
+            #   600x437
+            #   異界の創造主
+            #   https://hiroba.dqx.jp/sc/game/tengoku#_ikai
+            #   https://cache.hiroba.dqx.jp/dq_resource/img/game/ikai/open.png?456
+            #   600x437
+            #   実験的な冒険
+            #   https://hiroba.dqx.jp/sc/game/tengoku#_mamo
+            #   https://cache.hiroba.dqx.jp/dq_resource/img/game/jikken/open.png?456
+            #   600x430
+
             def _makeBadgeImage(badge_url):
                 with requests.get(badge_url) as r:
                     image = Image.open(io.BytesIO(r.content))
@@ -907,6 +937,40 @@ class taskTray:
             print('--------------------')
             # badge debug end
 
+            # CSS https://cache.hiroba.dqx.jp/dq_resource/css/game/tengoku.css 読んで解析するほうがよいんだろうけど今は決め打ち
+            # self.on_clicks に格納
+            # self.xnames と self.xleaves で一致していないものを修正する
+            def _makeImage(image_url):
+                # サイズが一定ではないので Hero 用にこちらで調整
+                new_img = None
+                try:
+                    with requests.get(image_url) as r:
+                        image = Image.open(io.BytesIO(r.content))
+                        if 'jikken' in image_url:
+                            # 上が空きすぎでバランス悪いので切り抜き
+                            sx, sy = (78, 120)
+                            new_img = image.crop((sx, sy, sx + 444, sy + 294))
+                        else:
+                            new_img = image
+                except Exception:
+                    pass
+                finally:
+                    return new_img
+
+            def _build_on_click_with_cache(key):
+                name = f'{self.xnames[key] if key in self.xnames else key}'
+                leaf = f'_{self.xleaves[key] if key in self.xleaves else key}'
+                ext = f'{"jpg" if key == "tengoku" else "png"}'
+
+                on_click = f'{tengoku_url}#{leaf}'
+                image_url = f'https://cache.hiroba.dqx.jp/dq_resource/img/game/{name}/open.{ext}'
+                if name not in self.badge_cache:
+                    image = _makeImage(image_url)
+                    if image:
+                        print(f'store {name}')
+                        self.badge_cache[name] = image
+                return on_click
+
             # 天獄
             tengoku = soup.find(class_='tengoku is-open mt15')
             if tengoku:
@@ -914,7 +978,9 @@ class taskTray:
                 yyyy, mm, dd, HH, MM = re.findall(NUMS_RE, _span)
                 span = f'{yyyy}/{int(mm):02d}/{int(dd):02d} {HH}:{MM} まで'
                 target = soup.find(class_='tengoku-x-table_title').text.strip()
-                self.raids['tengoku'] = f'{span} {target}'
+                key = 'tengoku'
+                self.raids[key] = f'{span} {target}'
+                self.on_clicks[key] = _build_on_click_with_cache(key)
 
             # インフェルノ・昏冥庫・異界の創造主・冒険的な実験 (一部分共通化)
             for key in list(self.raids)[1:]:
@@ -932,6 +998,13 @@ class taskTray:
                     else:
                         target = target.text.strip()
                     self.raids[key] = f'{span} {target}'
+                    self.on_clicks[key] = _build_on_click_with_cache(key)
+
+            # final result
+            print('------ keys: -------')
+            for target in self.badge_cache:
+                print(target)
+            print('--------------------')
 
             print(self.getNow(), tengoku_url, 'updated')
 
