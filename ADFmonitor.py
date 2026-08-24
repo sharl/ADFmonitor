@@ -26,6 +26,7 @@ import schedule
 
 from Badges import Badges
 from config import Config
+from css import CSS
 from utils import resource_path
 
 
@@ -45,6 +46,7 @@ if os.path.exists(WORK_DIR):
 os.makedirs(WORK_DIR)
 tokoyami_url = 'https://hiroba.dqx.jp/sc/tokoyami/#raid-container'
 tengoku_url = 'https://hiroba.dqx.jp/sc/game/tengoku'
+tengoku_css = 'https://cache.hiroba.dqx.jp/dq_resource/css/game/tengoku.css'
 MAX_MENUS = 7
 # 翌日の先頭の準備
 NEXT_DAY_MARK = 'NEXT_MARK'
@@ -854,7 +856,9 @@ class taskTray:
 
         now = self.getNow('%H:00')
 
-        # バトルコンテンツ出現情報
+        # バトルコンテンツ出現情報CSS読みこみ
+        self.css = CSS(tengoku_css)
+        # バトルコンテンツ出現情報本体読み込み
         with requests.get(tengoku_url, timeout=10) as r:
             self.raids = self.initRaids()
             self.on_clicks = self.initRaids()
@@ -937,25 +941,47 @@ class taskTray:
             print('--------------------')
             # badge debug end
 
-            # CSS https://cache.hiroba.dqx.jp/dq_resource/css/game/tengoku.css 読んで解析するほうがよいんだろうけど今は決め打ち
-            # self.on_clicks に格納
-            # self.xnames と self.xleaves で一致していないものを修正する
-            def _makeImage(image_url):
-                # サイズが一定ではないので Hero 用にこちらで調整
-                new_img = None
+            def _makeHeroImage(image_url):
+                # サイズが一定ではないので Hero 用に自力で調整
+                # CSS から人力 computed
                 try:
                     with requests.get(image_url) as r:
                         image = Image.open(io.BytesIO(r.content))
-                        if 'jikken' in image_url:
-                            # 上が空きすぎでバランス悪いので切り抜き
-                            sx, sy = (78, 120)
-                            new_img = image.crop((sx, sy, sx + 444, sy + 294))
-                        else:
-                            new_img = image
+                        LW, LH = image.size
+
+                        _class, _ext = image_url.split('/')[-2:]
+                        xclass = self.xclass[_class] if _class in self.xclass else _class
+
+                        offset = LH
+                        if '.png' in _ext:
+                            # # pngの謎クエリが描画範囲だった変態仕様
+                            # query = image_url.split('?')[-1]
+                            # offset = int(query)
+                            # 自前で謎クエリを補完
+                            offset = 456
+
+                        sh = int(self.css.get_style(xclass, 'height').removesuffix('px'))
+                        sp = int(self.css.get_style(xclass, 'padding-top').removesuffix('px'))
+
+                        # 上が空きすぎでいるので sp で上をカットオフ
+                        img = image.crop((0, (offset - sh) + sp, LW, LH))
+                        # print(' cropped', img.size)
+
+                        # アスペクト比を維持したまま Hero サイズに縮小
+                        HW, HH = (364, 180)
+                        OW, OH = img.size
+                        rate = HW / OW
+                        nh = int(OH * rate)
+                        res_img = img.resize((HW, nh))
+                        # print(' resized', res_img.size)
+
+                        # だいたい nh > HH なので上下のよぶんなところをカット
+                        # 焼き込まれている文字列はだいたい真ん中にいるので
+                        crop_img = res_img.crop((0, (nh - HH) // 2, HW, (nh - HH) // 2 + HH))
+
+                        return crop_img
                 except Exception:
-                    pass
-                finally:
-                    return new_img
+                    return None
 
             def _build_on_click_with_cache(key):
                 name = f'{self.xnames[key] if key in self.xnames else key}'
@@ -963,9 +989,10 @@ class taskTray:
                 ext = f'{"jpg" if key == "tengoku" else "png"}'
 
                 on_click = f'{tengoku_url}#{leaf}'
+                # CSS の相対パスを正規化するのが面倒だったので自前生成(そのため謎クエリがない)
                 image_url = f'https://cache.hiroba.dqx.jp/dq_resource/img/game/{name}/open.{ext}'
                 if name not in self.badge_cache:
-                    image = _makeImage(image_url)
+                    image = _makeHeroImage(image_url)
                     if image:
                         print(f'store {name}')
                         self.badge_cache[name] = image
@@ -999,12 +1026,6 @@ class taskTray:
                         target = target.text.strip()
                     self.raids[key] = f'{span} {target}'
                     self.on_clicks[key] = _build_on_click_with_cache(key)
-
-            # final result
-            print('------ keys: -------')
-            for target in self.badge_cache:
-                print(target)
-            print('--------------------')
 
             print(self.getNow(), tengoku_url, 'updated')
 
