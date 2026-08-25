@@ -986,6 +986,7 @@ class taskTray:
             def _build_on_click_with_cache(key):
                 name = f'{self.xnames[key] if key in self.xnames else key}'
                 leaf = f'_{self.xleaves[key] if key in self.xleaves else key}'
+                # 天獄時のみ jpg なので今は決め打ち
                 ext = f'{"jpg" if key == "tengoku" else "png"}'
 
                 on_click = f'{tengoku_url}#{leaf}'
