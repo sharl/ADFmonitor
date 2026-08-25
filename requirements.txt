@@ -11,6 +11,7 @@ schedule
 six
 soupsieve
 tenacity
+tinycss2
 typing_extensions
 urllib3
 win11toast
