@@ -678,11 +678,11 @@ class taskTray:
 
             # selected and changed event
             if self.select_badges[label] and event != laste:
-                # print(f'>> {key=} {label=} {event=} {laste=}')
-                key = f'{self.xnames[key] if key in self.xnames else key}'
+                xkey = f'{self.xnames[key] if key in self.xnames else key}'
+                # print(f'>> {key=} {xkey=} {label=} {event=} {laste=}')
                 image = {}
-                if key in self.badge_cache:
-                    image[key] = self.badge_cache[key]
+                if xkey in self.badge_cache:
+                    image[xkey] = self.badge_cache[xkey]
                 Dracky(event, image=image, hero=True, label=label, on_click=on_click)
                 self.last_events[key] = event
                 if event:
