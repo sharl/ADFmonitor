@@ -43,7 +43,7 @@ TITLE = 'Astoltia Defense Force'
 WORK_DIR = os.path.join(os.environ.get('TEMP'), 'ADF')
 if os.path.exists(WORK_DIR):
     shutil.rmtree(WORK_DIR)
-os.makedirs(WORK_DIR)
+os.makedirs(WORK_DIR, exist_ok=True)
 tokoyami_url = 'https://hiroba.dqx.jp/sc/tokoyami/#raid-container'
 tengoku_url = 'https://hiroba.dqx.jp/sc/game/tengoku'
 tengoku_css = 'https://cache.hiroba.dqx.jp/dq_resource/css/game/tengoku.css'
@@ -157,7 +157,7 @@ def Dracky(message, icon={}, image={}, hero=False, label=None, on_click=None, wo
 
     def _make_img_cache(img: dict) -> str:
         name = list(img)[0]
-        os.makedirs(work_dir)
+        os.makedirs(work_dir, exist_ok=True)
         tmp_name = os.path.join(work_dir, name)
         if not os.path.exists(tmp_name):
             if name.startswith('label'):
