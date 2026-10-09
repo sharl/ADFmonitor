@@ -9,7 +9,6 @@ import re
 import shutil
 import sys
 import threading
-import time
 import webbrowser
 import winsound as ws
 
@@ -257,7 +256,7 @@ class Setting:
 
 class taskTray:
     def __init__(self):
-        self.running = False
+        self.stop_event = threading.Event()
         self.config = Config(TITLE)
         self.icon_url = str()
         self.page_cache = {}
@@ -331,7 +330,7 @@ class taskTray:
         self.badges.start()
         # 待機
         while not self.badges._ready:
-            time.sleep(0.1)
+            self.stop_event.wait(0.1)
         # 設定読み込み
         self.load_config()
 
@@ -853,7 +852,7 @@ class taskTray:
         毎正時に更新
         """
         if wait:
-            time.sleep(1)
+            self.stop_event.wait(1)
 
         now = self.getNow('%H:00')
 
@@ -1108,16 +1107,17 @@ class taskTray:
         schedule.every().hour.at(':30').do(self.checkMetal)
         schedule.every().seconds.do(self.updateIcon)
 
-        while self.running:
+        while not self.stop_event.is_set():
             schedule.run_pending()
-            time.sleep(1)
+            if self.stop_event.wait(1):
+                break
 
     def stopApp(self):
-        self.running = False
+        self.stop_event.set()
         self.app.stop()
 
     def runApp(self):
-        self.running = True
+        self.stop_event.clear()
 
         task_thread = threading.Thread(target=self.runSchedule)
         task_thread.start()
