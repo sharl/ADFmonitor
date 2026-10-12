@@ -15,12 +15,12 @@ import winsound as ws
 from PIL import Image, ImageEnhance
 from bs4 import BeautifulSoup
 from pystray import Icon, Menu, MenuItem
+from requests import Session
 from tenacity import retry, stop_after_attempt, wait_fixed
 from win11toast import notify
 from winrt.windows.ui.notifications import ToastNotificationManager
 from winrt.windows.ui.viewmanagement import UISettings
 import darkdetect as dd
-from requests import Session
 import schedule
 
 from Badges import Badges
