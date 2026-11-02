@@ -16,7 +16,7 @@ typing_extensions
 urllib3
 webencodings
 win11toast
-winrt-runtime
+winrt-runtime < 4
 winrt-Windows.Data.Xml.Dom
 winrt-Windows.Foundation
 winrt-Windows.Foundation.Collections
