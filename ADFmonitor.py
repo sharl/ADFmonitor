@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from dataclasses import asdict, dataclass
 from datetime import datetime as dt, timedelta as td, timezone as tz
+from importlib.metadata import version
 import ctypes
 import hashlib
 import io
@@ -19,6 +20,11 @@ from requests import Session
 from tenacity import retry, stop_after_attempt, wait_fixed
 from win11toast import notify
 from winrt.windows.ui.notifications import ToastNotificationManager
+# pywinrt version detection
+if version('winrt-Windows.UI.Notifications').startswith('3'):
+    clear_toast = ToastNotificationManager.history.remove_grouped_tag_with_id
+else:
+    clear_toast = ToastNotificationManager.history.remove
 from winrt.windows.ui.viewmanagement import UISettings
 import darkdetect as dd
 import schedule
@@ -174,7 +180,7 @@ def Dracky(message, icon={}, image={}, hero=False, label=None, on_click=None, wo
 
     # clear history with tag, group, app_id
     # avoid win11toast.clear_toast: in 0.36.3
-    ToastNotificationManager.history.remove_grouped_tag_with_id(tag, group, TITLE)
+    clear_toast(tag, group, TITLE)
 
     # delete notification only
     if not message:
